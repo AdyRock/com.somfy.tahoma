@@ -1593,7 +1593,7 @@ class myApp extends Homey.App
 		}
 
 		const hasProvidedLocalToken = !!(localToken && `${localToken}`.trim());
-		if ((hasProvidedLocalToken || !forceLogin || !needsCloudLogin || cloudAuthenticated) && this.localBridgeInfo && this.localBridgeInfo.pin && (!this.tahomaLocal.authenticated || forceLogin || switchLocalAccount))
+		if ((hasProvidedLocalToken || !forceLogin || !needsCloudLogin || cloudAuthenticated) && this.localBridgeInfo && this.localBridgeInfo.pin && this.tahomaLocal && (!this.tahomaLocal.authenticated || forceLogin || switchLocalAccount))
 		{
 			const bridgeCandidates = this.getCandidateCredentialsForLocalRouting(username, this.localBridgeInfo.pin);
 			if (hasProvidedLocalToken || (bridgeCandidates.length > 0))
@@ -1628,7 +1628,7 @@ class myApp extends Homey.App
 
 		if (this.localOnly)
 		{
-			return this.tahomaLocal.authenticated;
+			return !!(this.tahomaLocal && this.tahomaLocal.authenticated);
 		}
 
 		return this.tahomaCloud.authenticated;
@@ -4547,7 +4547,7 @@ class myApp extends Homey.App
 			{
 				data = [...localByKey.values()];
 			}
-			else if (this.tahomaLocal.authenticated)
+			else if (this.tahomaLocal && this.tahomaLocal.authenticated)
 			{
 				// Fallback to current local connection if present
 				data = await this.tahomaLocal.getDeviceData();
