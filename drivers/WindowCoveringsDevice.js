@@ -357,7 +357,7 @@ class WindowCoveringsDevice extends Device
 			if (this.hasCapability('windowcoverings_closed'))
 			{
 				const position = this.invertPosition ? 1 - value : value;
-				const closedPosition = this.invertTile ? (this.invertUpDown ? 0 : 1) : (this.invertUpDown ? 1 : 0);
+				const closedPosition = Number(this.invertTile === this.invertUpDown);
 				this.setCapabilityValue('windowcoverings_closed', position === closedPosition).catch(this.error);
 			}
 		}
@@ -899,6 +899,14 @@ class WindowCoveringsDevice extends Device
 									else
 									{
 										lastPosition = null;
+										if (this.openClosedStateName === 'core:OpenClosedState')
+										{
+											const openClosedStateValue = this.windowcoveringsStatesMap[closureStateValue === 0 ? 'open' : 'closed'];
+											this.triggerCapabilityListener('windowcoverings_state', openClosedStateValue,
+											{
+												fromCloudSync: true,
+											}).catch(this.error);
+										}
 									}
 								}
 							}

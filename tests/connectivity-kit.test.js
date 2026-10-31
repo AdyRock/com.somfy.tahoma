@@ -231,6 +231,38 @@ test('Somfy Zigbee shades retain My and support percentage positioning', async (
 	assert.equal(device.positionStateName, 'core:ClosureState');
 });
 
+test('window covering state returns from idle when closure reaches an endpoint', async () =>
+{
+	const device = create('drivers\\io_vertical_exterior_blind\\device.js', 'ogp:Blind',
+		['windowcoverings_state', 'windowcoverings_set', 'windowcoverings_closed']);
+	await device.onInit();
+
+	await device.syncEvents([
+		{
+			name: 'DeviceStateChangedEvent',
+			deviceURL: device.data.deviceURL,
+			deviceStates: [{ name: 'core:OpenClosedState', value: 'open' }],
+		},
+	], false);
+	assert.equal(device.values.windowcoverings_state, 'up');
+
+	for (const [position, state, closed] of [
+		[21, 'idle', false],
+		[0, 'up', false],
+		[85, 'idle', false],
+		[100, 'down', true],
+	])
+	{
+		await device.syncEvents([{
+			name: 'DeviceStateChangedEvent',
+			deviceURL: device.data.deviceURL,
+			deviceStates: [{ name: 'core:ClosureState', value: position }],
+		}], false);
+		assert.equal(device.values.windowcoverings_state, state);
+		assert.equal(device.values.windowcoverings_closed, closed);
+	}
+});
+
 test('Zigbee smart plugs can be paired as sockets and support on/off and timers', async () =>
 {
 	const driver = create('drivers\\on_off_socket\\driver.js', 'zigbee:OnOffComponent', []);

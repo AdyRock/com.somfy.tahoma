@@ -1018,5 +1018,8 @@
 	},
 	"4.0.162": {
 		"en": "Fixed the Zigbee AC Control so the thermostat mode, operating mode and current temperature now sync back to Homey when changed by a remote."
+	},
+	"4.0.163": {
+		"en": "Change so the open / close / idle states are correctly reflected for window coverings."
 	}
 }
