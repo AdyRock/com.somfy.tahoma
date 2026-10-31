@@ -1826,8 +1826,12 @@
 
 				var percent = Math.round(ratio * 100);
 				var lines = [
+					`Matched controllable name: ${candidate.matchedControllableName}`,
+					`Controllable-name match: +${candidate.baseScore} points`,
+					`Capability adjustment (including coverage bonus): ${candidate.score - candidate.baseScore} points`,
 					`Match score: ${candidate.score}`,
-					`Compatibility: ${percent}%`,
+					`Capability evidence: ${percent}%`,
+					'The controllable name identifies a supported driver. Capability checks are heuristic; unmatched capabilities do not necessarily mean unsupported features.',
 					`Matched capabilities: ${formatCapabilityList(matched)}`,
 					`Unmatched capabilities: ${formatCapabilityList(unmatched)}`,
 				];

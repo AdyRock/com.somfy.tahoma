@@ -1,8 +1,12 @@
 {
   "name": "com.somfy.tahoma",
-  "version": "4.0.160",
+  "version": "4.0.161",
   "description": "Somfy TaHoma app for Homey",
   "main": "app.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/*.test.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/AdyRock/com.somfy.tahoma.git"

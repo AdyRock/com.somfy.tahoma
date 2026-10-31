@@ -221,6 +221,7 @@ class ValveHeatingDevice extends SensorDevice
 						deviceData.label,
 						this.executionCommands[oldIdx].id,
 						this.executionCommands[oldIdx].local,
+						deviceData.deviceURL,
 					);
 				} catch (err)
 				{

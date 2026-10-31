@@ -185,7 +185,7 @@ class Device extends Homey.Device
 		if (this.combineSubURLs)
 		{
 			const subURLRoot = this.getDeviceUrl(0);
-			if (subURLRoot && eventURLText.startsWith(subURLRoot))
+			if (subURLRoot && ((eventURLText === subURLRoot) || eventURLText.startsWith(`${subURLRoot}#`)))
 			{
 				return true;
 			}
@@ -395,7 +395,7 @@ class Device extends Homey.Device
 				// Found it so cancel the current command first
 				try
 				{
-					await this.homey.app.cancelExecution(deviceData.label, this.executionCommands[existingCommandIdx].id, this.executionCommands[existingCommandIdx].local);
+					await this.homey.app.cancelExecution(deviceData.label, this.executionCommands[existingCommandIdx].id, this.executionCommands[existingCommandIdx].local, deviceData.deviceURL);
 				}
 				catch (err)
 				{

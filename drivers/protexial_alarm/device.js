@@ -52,7 +52,7 @@ class OneAlarmDevice extends SensorDevice
 						return;
 					}
 
-					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local);
+					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
 					this.executionCmd = '';
 					this.executionId = null;
 				}
@@ -100,7 +100,7 @@ class OneAlarmDevice extends SensorDevice
 						return;
 					}
 
-					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local);
+					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
 					this.executionCmd = '';
 					this.executionId = null;
 				}
@@ -183,7 +183,7 @@ class OneAlarmDevice extends SensorDevice
 						return;
 					}
 
-					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local);
+					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
 
 					this.retries = 0;
 					this.executionCmd = '';

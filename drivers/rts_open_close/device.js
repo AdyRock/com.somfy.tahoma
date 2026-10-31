@@ -23,7 +23,7 @@ class OpenCloseDevice extends Device
 		const deviceData = this.getData();
 		if (this.executionId !== null)
 		{
-			await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local);
+			await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
 			return;
 		}
 

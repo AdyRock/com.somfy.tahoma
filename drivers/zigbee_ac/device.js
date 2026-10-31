@@ -159,26 +159,33 @@ class zigbeeACDevice extends SensorDevice
 				if (temperature)
 				{
 					this.homey.app.logStates(`${this.getName()}: core:TemperatureState = ${temperature.value}`);
-					this.triggerCapabilityListener('measure_temperature', temperature.value,
-					{
-						fromCloudSync: true,
-					}).catch(this.error);
+					this.setCapabilityValue('measure_temperature', temperature.value).catch(this.error);
 				}
 
 				const louverState = states.find((state) => (state && (state.name === 'zigbee:ACLouverPositionState')));
 				if (louverState)
 				{
-					this.homey.app.logStates(`${this.getName()}: core:HeatingOnOffState = ${louverState.value}`);
+					this.homey.app.logStates(`${this.getName()}: zigbee:ACLouverPositionState = ${louverState.value}`);
 					this.triggerCapabilityListener('ac_louver_position', louverState.value,
 					{
 						fromCloudSync: true,
 					}).catch(this.error);
 				}
 
-				const thermostateState = states.find((state) => (state && (state.name === 'zigbee:ControlSequenceOfThermostatOperationState')));
+				const controlModeState = states.find((state) => (state && (state.name === 'zigbee:ControlSequenceOfThermostatOperationState')));
+				if (controlModeState)
+				{
+					this.homey.app.logStates(`${this.getName()}: zigbee:ControlSequenceOfThermostatOperationState = ${controlModeState.value}`);
+					this.triggerCapabilityListener('ac_control_mode', controlModeState.value,
+					{
+						fromCloudSync: true,
+					}).catch(this.error);
+				}
+
+				const thermostateState = states.find((state) => (state && (state.name === 'zigbee:ThermostatModeState')));
 				if (thermostateState)
 				{
-					this.homey.app.logStates(`${this.getName()}: zigbee:ControlSequenceOfThermostatOperationState = ${thermostateState.value}`);
+					this.homey.app.logStates(`${this.getName()}: zigbee:ThermostatModeState = ${thermostateState.value}`);
 					this.triggerCapabilityListener('ac_thermostat_mode', thermostateState.value,
 					{
 						fromCloudSync: true,
@@ -198,7 +205,7 @@ class zigbeeACDevice extends SensorDevice
 				const coolingTemp = states.find((state) => (state && (state.name === 'core:CoolingTargetTemperatureState')));
 				if (coolingTemp)
 				{
-					this.homey.app.logStates(`${this.getName()}: core:core:CoolingTargetTemperatureState = ${coolingTemp.value}`);
+					this.homey.app.logStates(`${this.getName()}: core:CoolingTargetTemperatureState = ${coolingTemp.value}`);
 					this.triggerCapabilityListener('target_temperature.cooling', coolingTemp.value,
 					{
 						fromCloudSync: true,
@@ -263,17 +270,14 @@ class zigbeeACDevice extends SensorDevice
 					for (let x = 0; x < element.deviceStates.length; x++)
 					{
 						const deviceState = element.deviceStates[x];
-						if (deviceState.name === 'core:CoolingOnOffState')
+						if (deviceState.name === 'core:TemperatureState')
 						{
 							this.homey.app.logStates(`${this.getName()}: core:TemperatureState = ${deviceState.value}`);
 							const oldState = this.getState().measure_temperature;
 							const newState = deviceState.value;
 							if (oldState !== newState)
 							{
-								this.triggerCapabilityListener('measure_temperature', deviceState.value,
-								{
-									fromCloudSync: true,
-								}).catch(this.error);
+								this.setCapabilityValue('measure_temperature', newState).catch(this.error);
 							}
 						}
 						else if (deviceState.name === 'zigbee:ACLouverPositionState')
@@ -292,6 +296,19 @@ class zigbeeACDevice extends SensorDevice
 						else if (deviceState.name === 'zigbee:ControlSequenceOfThermostatOperationState')
 						{
 							this.homey.app.logStates(`${this.getName()}: zigbee:ControlSequenceOfThermostatOperationState = ${deviceState.value}`);
+							const oldState = this.getState().ac_control_mode;
+							const newState = deviceState.value;
+							if (oldState !== newState)
+							{
+								this.triggerCapabilityListener('ac_control_mode', deviceState.value,
+								{
+									fromCloudSync: true,
+								}).catch(this.error);
+							}
+						}
+						else if (deviceState.name === 'zigbee:ThermostatModeState')
+						{
+							this.homey.app.logStates(`${this.getName()}: zigbee:ThermostatModeState = ${deviceState.value}`);
 							const oldState = this.getState().ac_thermostat_mode;
 							const newState = deviceState.value;
 							if (oldState !== newState)
@@ -318,7 +335,7 @@ class zigbeeACDevice extends SensorDevice
 						else if (deviceState.name === 'core:CoolingTargetTemperatureState')
 						{
 							this.homey.app.logStates(`${this.getName()}: core:CoolingTargetTemperatureState = ${deviceState.value}`);
-							const oldState = this.getState().target_temperature.cooling;
+							const oldState = this.getState()['target_temperature.cooling'];
 							const newState = deviceState.value;
 							if (oldState !== newState)
 							{
@@ -331,7 +348,7 @@ class zigbeeACDevice extends SensorDevice
 						else if (deviceState.name === 'core:HeatingTargetTemperatureState')
 						{
 							this.homey.app.logStates(`${this.getName()}: core:HeatingTargetTemperatureState = ${deviceState.value}`);
-							const oldState = this.getState().target_temperature.heating;
+							const oldState = this.getState()['target_temperature.heating'];
 							const newState = deviceState.value;
 							if (oldState !== newState)
 							{

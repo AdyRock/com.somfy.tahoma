@@ -49,7 +49,7 @@ class HitachiACDevice extends SensorDevice
 			{
 				try
 				{
-					await this.homey.app.cancelExecution(deviceData.label, this.executionCommands[oldIdx].id, this.executionCommands[oldIdx].local);
+					await this.homey.app.cancelExecution(deviceData.label, this.executionCommands[oldIdx].id, this.executionCommands[oldIdx].local, deviceData.deviceURL);
 				}
 				catch (err)
 				{
@@ -100,7 +100,7 @@ class HitachiACDevice extends SensorDevice
 			{
 				try
 				{
-					await this.homey.app.cancelExecution(deviceData.label, this.executionCommands[oldIdx].id, this.executionCommands[oldIdx].local);
+					await this.homey.app.cancelExecution(deviceData.label, this.executionCommands[oldIdx].id, this.executionCommands[oldIdx].local, deviceData.deviceURL);
 				}
 				catch (err)
 				{
@@ -203,7 +203,7 @@ class HitachiACDevice extends SensorDevice
 		{
 			try
 			{
-				await this.homey.app.cancelExecution(deviceData.label, this.executionCommands[oldIdx].id, this.executionCommands[oldIdx].local);
+				await this.homey.app.cancelExecution(deviceData.label, this.executionCommands[oldIdx].id, this.executionCommands[oldIdx].local, deviceData.deviceURL);
 			}
 			catch (err)
 			{

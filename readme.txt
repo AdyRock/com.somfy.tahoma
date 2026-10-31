@@ -25,6 +25,7 @@ Battery readings on related configuration endpoints are used automatically. Disc
 Additional devices:
 - Add Sonos Audio Players using Audio Player (Sonos) for volume and mute control.
 - Add RTS bioclimatic pergola screens using Pergola Screen (RTS) for open, close, stop and My favourite position. These devices do not report position.
+- Add the privacy shutter of Somfy One+ and Somfy Protect security cameras using Security Camera Shutter, to open or close the camera's lens cover.
 
 Suggestions or problems?
 If you have a device that's not supported or a suggestion or problem with this app please go to the forum or the github page linked on this page and let me know.

@@ -34,7 +34,7 @@ class VeluxRollerShutterDevice extends WindowCoveringsDevice {
 
 				if (this.executionId !== null)
 				{
-					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local);
+					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
 					this.executionCmd = '';
 					this.executionId = null;
 				}

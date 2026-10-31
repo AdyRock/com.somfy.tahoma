@@ -1,0 +1,443 @@
+<style>
+  html,
+  body {
+    height: 100%;
+  }
+
+  .gateway-pair-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 12px;
+  }
+
+  .gateway-header {
+    margin: 0;
+  }
+
+  .gateway-subtitle {
+    margin: 0;
+    opacity: 0.8;
+  }
+
+  .gateway-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .gateway-list {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+  }
+
+  .gateway-group {
+    border: none;
+    border-radius: 0;
+    padding: 4px 0;
+  }
+
+  .gateway-group-summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .gateway-device-list {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .gateway-device-tile {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    width: 118px !important;
+    min-height: 118px !important;
+    height: auto !important;
+    padding: 8px !important;
+    margin: 0 !important;
+    border: 2px solid #0082fa !important;
+    border-radius: 12px !important;
+    background: #f2f9ff !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    color: inherit !important;
+    flex-shrink: 0 !important;
+    position: relative;
+    cursor: pointer !important;
+    -webkit-user-select: none;
+    user-select: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      background-color 0.15s ease;
+  }
+
+  .gateway-device-tile:hover {
+    border-color: #0082fa !important;
+  }
+
+  .gateway-device-tile.selected {
+    box-shadow: none;
+  }
+
+  .gateway-device-tile-icon-wrap {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    border-radius: 10px;
+    align-self: flex-start;
+  }
+
+  .gateway-device-tile-icon {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+  }
+
+  .gateway-device-tile-name {
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: left;
+    word-break: break-word;
+    margin-top: auto;
+    width: 100%;
+  }
+
+  .gateway-device-tile-check {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: #177ae6;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  .gateway-device-tile-check.hidden {
+    display: none;
+  }
+
+  .gateway-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+</style>
+
+<div class="gateway-pair-page">
+  <h2 class="gateway-header" data-i18n="pair.gateway_list.title"></h2>
+  <p class="gateway-subtitle" data-i18n="pair.gateway_list.subtitle"></p>
+
+  <div class="gateway-actions">
+    <button
+      class="homey-button-secondary"
+      id="select_all"
+      type="button"
+      data-i18n="pair.gateway_list.select_all"
+      title="Select all"
+    ></button>
+    <button
+      class="homey-button-secondary"
+      id="clear_all"
+      type="button"
+      data-i18n="pair.gateway_list.clear_all"
+      title="Clear all"
+    ></button>
+  </div>
+
+  <div class="gateway-list" id="gateway_list"></div>
+
+  <div class="gateway-footer">
+    <button
+      class="homey-button-primary-full"
+      id="add_selected"
+      type="button"
+      data-i18n="pair.gateway_list.add_selected"
+      title="Add selected"
+    ></button>
+  </div>
+</div>
+
+<script type="text/javascript">
+  Homey.setTitle(__("pair.gateway_list.view_title"));
+
+  let allDevices = [];
+  const selectedIndices = new Set();
+
+  function t(key, fallback) {
+    const value = __(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+
+    return value;
+  }
+
+  function format(template, replacements) {
+    let value = template;
+    Object.keys(replacements).forEach((token) => {
+      value = value.replace("{" + token + "}", String(replacements[token]));
+    });
+    return value;
+  }
+
+  function gatewayIdFromDevice(device) {
+    const gatewayId =
+      device && device.data && device.data.gatewayId
+        ? String(device.data.gatewayId)
+        : "";
+    if (gatewayId) {
+      return gatewayId;
+    }
+
+    const deviceURL =
+      device && device.data && device.data.deviceURL
+        ? String(device.data.deviceURL)
+        : "";
+    const match = deviceURL.match(/^[^:]+:\/\/([^/]+)\//);
+    return match && match[1]
+      ? match[1]
+      : t("pair.gateway_list.unknown_gateway", "Unknown gateway");
+  }
+
+  function groupDevicesByGateway(devices) {
+    const groups = new Map();
+    devices.forEach((device, index) => {
+      const gatewayId = gatewayIdFromDevice(device);
+      if (!groups.has(gatewayId)) {
+        groups.set(gatewayId, []);
+      }
+      groups.get(gatewayId).push({ device, index });
+    });
+
+    return [...groups.entries()].sort((a, b) =>
+      String(a[0]).localeCompare(String(b[0])),
+    );
+  }
+
+  function renderDevices(devices) {
+    const list = document.getElementById("gateway_list");
+    list.innerHTML = "";
+
+    if (!Array.isArray(devices) || devices.length === 0) {
+      list.innerHTML =
+        "<p>" +
+        t("pair.gateway_list.no_devices", "No devices found for this driver.") +
+        "</p>";
+      document.getElementById("add_selected").disabled = true;
+      return;
+    }
+
+    document.getElementById("add_selected").disabled = false;
+    selectedIndices.clear();
+    devices.forEach((device, index) => {
+      selectedIndices.add(index);
+    });
+
+    const grouped = groupDevicesByGateway(devices);
+
+    grouped.forEach(([gatewayId, entries], groupIndex) => {
+      const details = document.createElement("details");
+      details.className = "gateway-group";
+      details.open = groupIndex === 0;
+
+      const summary = document.createElement("summary");
+      summary.className = "gateway-group-summary";
+      const gatewayPrefix = t("pair.gateway_list.gateway_prefix", "Gateway");
+      summary.textContent =
+        gatewayPrefix + " " + gatewayId + " (" + entries.length + ")";
+      details.appendChild(summary);
+
+      const groupList = document.createElement("div");
+      groupList.className = "gateway-device-list";
+
+      entries.forEach((entry) => {
+        const tile = document.createElement("button");
+        tile.type = "button";
+        tile.className = "gateway-device-tile selected";
+        tile.dataset.index = String(entry.index);
+
+        const check = document.createElement("span");
+        check.className = "gateway-device-tile-check";
+        check.textContent = "✓";
+
+        const iconWrap = document.createElement("span");
+        iconWrap.className = "gateway-device-tile-icon-wrap";
+
+        const icon = document.createElement("img");
+        icon.className = "gateway-device-tile-icon";
+        icon.alt = "";
+
+        const fallbackIcon = "../assets/icon.svg";
+        const secondFallbackIcon = "../assets/images/small.png";
+        const deviceIcon =
+          entry.device && entry.device.icon
+            ? String(entry.device.icon)
+            : fallbackIcon;
+
+        icon.src = deviceIcon;
+        icon.onerror = function () {
+          if (this.dataset.fallbackStep === "2") {
+            this.onerror = null;
+            this.src = "logo.png";
+            return;
+          }
+
+          if (this.dataset.fallbackStep === "1") {
+            this.dataset.fallbackStep = "2";
+            this.src = secondFallbackIcon;
+            return;
+          }
+
+          this.dataset.fallbackStep = "1";
+          this.src = fallbackIcon;
+        };
+
+        const text = document.createElement("span");
+        text.className = "gateway-device-tile-name";
+        text.textContent =
+          entry.device && entry.device.name
+            ? String(entry.device.name)
+            : t("pair.gateway_list.unnamed_device", "Unnamed device");
+
+        iconWrap.appendChild(icon);
+        tile.appendChild(check);
+        tile.appendChild(iconWrap);
+        tile.appendChild(text);
+
+        tile.addEventListener("click", function () {
+          const idx = Number(tile.dataset.index);
+          if (!Number.isInteger(idx)) {
+            return;
+          }
+
+          if (selectedIndices.has(idx)) {
+            selectedIndices.delete(idx);
+            tile.classList.remove("selected");
+            check.classList.add("hidden");
+          } else {
+            selectedIndices.add(idx);
+            tile.classList.add("selected");
+            check.classList.remove("hidden");
+          }
+        });
+
+        groupList.appendChild(tile);
+      });
+
+      details.appendChild(groupList);
+      list.appendChild(details);
+    });
+  }
+
+  function selectedDevices() {
+    const selected = [];
+    selectedIndices.forEach((idx) => {
+      if (Number.isInteger(idx) && allDevices[idx]) {
+        selected.push(allDevices[idx]);
+      }
+    });
+
+    return selected;
+  }
+
+  function addSelectedSequential(devices, position, failures) {
+    if (position >= devices.length) {
+      if (failures.length > 0) {
+        const warningTemplate = t(
+          "pair.gateway_list.partial_result",
+          "Added {added} device(s), failed {failed}.",
+        );
+        Homey.alert(
+          format(warningTemplate, {
+            added: devices.length - failures.length,
+            failed: failures.length,
+          }),
+          "warning",
+        );
+      }
+
+      Homey.done();
+      return;
+    }
+
+    Homey.createDevice(devices[position], function (err) {
+      if (err) {
+        failures.push(err && err.message ? err.message : String(err));
+      }
+      addSelectedSequential(devices, position + 1, failures);
+    });
+  }
+
+  document.getElementById("select_all").addEventListener("click", function () {
+    document.querySelectorAll(".gateway-device-tile").forEach((tile) => {
+      const idx = Number(tile.dataset.index);
+      if (Number.isInteger(idx)) {
+        selectedIndices.add(idx);
+      }
+
+      tile.classList.add("selected");
+      const check = tile.querySelector(".gateway-device-tile-check");
+      if (check) {
+        check.classList.remove("hidden");
+      }
+    });
+  });
+
+  document.getElementById("clear_all").addEventListener("click", function () {
+    selectedIndices.clear();
+    document.querySelectorAll(".gateway-device-tile").forEach((tile) => {
+      tile.classList.remove("selected");
+      const check = tile.querySelector(".gateway-device-tile-check");
+      if (check) {
+        check.classList.add("hidden");
+      }
+    });
+  });
+
+  document
+    .getElementById("add_selected")
+    .addEventListener("click", function () {
+      const devices = selectedDevices();
+      if (!devices.length) {
+        Homey.alert(
+          t("pair.gateway_list.select_one", "Select at least one device."),
+          "warning",
+        );
+        return;
+      }
+
+      addSelectedSequential(devices, 0, []);
+    });
+
+  Homey.emit("list_devices", {}, function (err, devices) {
+    if (err) {
+      Homey.alert(err && err.message ? err.message : String(err), "error");
+      return;
+    }
+
+    allDevices = Array.isArray(devices) ? devices : [];
+    renderDevices(allDevices);
+  });
+</script>

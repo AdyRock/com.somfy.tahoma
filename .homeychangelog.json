@@ -1012,5 +1012,11 @@
 	},
 	"4.0.160": {
 		"en": "Enhanced error handling and reauthentication flow."
+	},
+	"4.0.161": {
+		"en": "Added support for the Somfy One+ and Somfy Protect security camera shutters."
+	},
+	"4.0.162": {
+		"en": "Fixed the Zigbee AC Control so the thermostat mode, operating mode and current temperature now sync back to Homey when changed by a remote."
 	}
 }

@@ -1,0 +1,69 @@
+{
+  "name": {
+    "en": "Security Camera Shutter",
+    "nl": "Beveiligingscamera Sluiter",
+    "da": "Sikkerhedskamera Lukker",
+    "de": "Sicherheitskamera Verschluss",
+    "es": "Obturador de Cámara de Seguridad",
+    "fr": "Volet de Caméra de Sécurité",
+    "it": "Otturatore Telecamera di Sicurezza",
+    "no": "Sikkerhetskamera Lukker",
+    "sv": "Säkerhetskamera Slutare",
+    "pl": "Kamera Bezpieczeństwa Przesłona",
+    "ru": "Шторка Камеры Безопасности",
+    "ko": "보안 카메라 셔터"
+  },
+  "class": "other",
+  "capabilities": [
+    "onoff"
+  ],
+  "capabilitiesOptions": {
+    "onoff": {
+      "title": {
+        "en": "Shutter open",
+        "nl": "Sluiter open",
+        "da": "Lukker åben",
+        "de": "Verschluss offen",
+        "es": "Obturador abierto",
+        "fr": "Volet ouvert",
+        "it": "Otturatore aperto",
+        "no": "Lukker åpen",
+        "sv": "Slutare öppen",
+        "pl": "Przesłona otwarta",
+        "ru": "Шторка открыта",
+        "ko": "셔터 열림"
+      },
+      "insightsTitleTrue": {
+        "en": "Shutter opened",
+        "nl": "Sluiter geopend",
+        "da": "Lukker åbnet",
+        "de": "Verschluss geöffnet",
+        "es": "Obturador abierto",
+        "fr": "Volet ouvert",
+        "it": "Otturatore aperto",
+        "no": "Lukker åpnet",
+        "sv": "Slutare öppnad",
+        "pl": "Przesłona otwarta",
+        "ru": "Шторка открыта",
+        "ko": "셔터 열림"
+      },
+      "insightsTitleFalse": {
+        "en": "Shutter closed",
+        "nl": "Sluiter gesloten",
+        "da": "Lukker lukket",
+        "de": "Verschluss geschlossen",
+        "es": "Obturador cerrado",
+        "fr": "Volet fermé",
+        "it": "Otturatore chiuso",
+        "no": "Lukker lukket",
+        "sv": "Slutare stängd",
+        "pl": "Przesłona zamknięta",
+        "ru": "Шторка закрыта",
+        "ko": "셔터 닫힘"
+      }
+    }
+  },
+  "$extends": [
+    "cloudDriver"
+  ]
+}

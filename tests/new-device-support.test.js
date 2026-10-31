@@ -119,3 +119,61 @@ test('RTS pergola driver uses timed open/close/stop controls without position fe
 	});
 	assert.equal(device.executionCmd, 'open');
 });
+
+test('Zigbee AC device syncs remote state change events to the correct capabilities', async () =>
+{
+	const ZigbeeACDevice = loadModule('drivers/zigbee_ac/device.js', { '../SensorDevice': FakeBase });
+	const device = new ZigbeeACDevice();
+	const triggered = [];
+	const setValues = [];
+	Object.assign(device, {
+		homey: {
+			app: {
+				infoLogEnabled: false,
+				isLocalDevice: () => false,
+				logInformation() {},
+				logStates() {},
+			},
+		},
+		getDeviceUrl: () => 'zigbee://2014-6629-7802/17769/1',
+		getName: () => 'Airco Bureau',
+		getState: () => ({
+			measure_temperature: 20,
+			ac_thermostat_mode: 'off',
+			ac_control_mode: 'coolingOnly',
+			ac_fan_speed_mode: 'auto',
+			'target_temperature.cooling': 21,
+			'target_temperature.heating': 19,
+		}),
+		triggerCapabilityListener: async (name, value, opts) =>
+		{
+			triggered.push([name, value, opts]);
+		},
+		setCapabilityValue: async (name, value) =>
+		{
+			setValues.push([name, value]);
+		},
+		error() {},
+	});
+
+	await device.syncEvents([
+		{
+			name: 'DeviceStateChangedEvent',
+			deviceURL: 'zigbee://2014-6629-7802/17769/1',
+			deviceStates: [
+				{ name: 'zigbee:ThermostatModeState', value: 'heat' },
+				{ name: 'zigbee:ControlSequenceOfThermostatOperationState', value: 'heatingOnly' },
+				{ name: 'core:TemperatureState', value: 21.5 },
+				{ name: 'core:CoolingTargetTemperatureState', value: 23 },
+				{ name: 'core:HeatingTargetTemperatureState', value: 19 },
+			],
+		},
+	], true);
+
+	assert.deepEqual(JSON.parse(JSON.stringify(triggered)), [
+		['ac_thermostat_mode', 'heat', { fromCloudSync: true }],
+		['ac_control_mode', 'heatingOnly', { fromCloudSync: true }],
+		['target_temperature.cooling', 23, { fromCloudSync: true }],
+	]);
+	assert.deepEqual(setValues, [['measure_temperature', 21.5]]);
+});

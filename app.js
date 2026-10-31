@@ -407,12 +407,12 @@ class myApp extends Homey.App
 		const attemptKey = this.getLocalAttemptKey(bridgePin, username, region);
 		const now = Date.now();
 
-		if (attemptKey && this.localCredentialRetryAfter[attemptKey] && (this.localCredentialRetryAfter[attemptKey] > now))
+		if (!localToken && attemptKey && this.localCredentialRetryAfter[attemptKey] && (this.localCredentialRetryAfter[attemptKey] > now))
 		{
 			return false;
 		}
 
-		if (bridgePin && localClient.authenticated && ((currentAuthenticatedBridgePin === bridgePin) || !setAsActive) && Array.isArray(localClient.supportedDevices) && (localClient.supportedDevices.length > 0))
+		if (!localToken && bridgePin && localClient.authenticated && ((currentAuthenticatedBridgePin === bridgePin) || !setAsActive) && Array.isArray(localClient.supportedDevices) && (localClient.supportedDevices.length > 0))
 		{
 			return true;
 		}
@@ -435,10 +435,24 @@ class myApp extends Homey.App
 			}
 
 			const bearerForBridge = (this.localBearersByPin && bridgeInfo.pin) ? this.localBearersByPin[bridgeInfo.pin] : this.localBearer;
-			const localBearer = await localClient.getLocalAuthCode(username, password, region, bridgeInfo.pin, bridgeInfo.port, bearerForBridge, await this.homey.cloud.getHomeyId(), newToken);
+			const localBearer = await localClient.getLocalAuthCode(username, password, region, bridgeInfo.pin, bridgeInfo.port, newToken ? null : bearerForBridge, await this.homey.cloud.getHomeyId(), newToken);
 			if (!localBearer)
 			{
 				const statusCode = localClient.lastLocalTokenError && localClient.lastLocalTokenError.statusCode;
+				if (!newToken && bearerForBridge && (statusCode === 401))
+				{
+					delete this.localBearersByPin[bridgeInfo.pin];
+					this.homey.settings.set('localBearersByPin', this.localBearersByPin);
+					if (this.localBearer === bearerForBridge)
+					{
+						this.localBearer = null;
+					}
+					if (this.homey.settings.get('localBearer') === bearerForBridge)
+					{
+						this.homey.settings.unset('localBearer');
+					}
+					this.logInformation('Local login', 'Discarded rejected cached bearer; the next attempt will obtain a new token');
+				}
 				if (attemptKey && [400, 401, 403].includes(statusCode))
 				{
 					// The bridge rejected this account; avoid hammering token generation for a while.
@@ -1303,7 +1317,7 @@ class myApp extends Homey.App
 			}
 		}
 
-		return client.authenticated ? client : this.tahomaCloud;
+		return client;
 	}
 
 	setPrimaryCloudSession(username)
@@ -2006,10 +2020,10 @@ class myApp extends Homey.App
 				continue;
 			}
 
-			if (!controllableMap[controllableName])
+			if (!controllableMap[controllableNameKey])
 			{
 				const mappedDrivers = driversByControllableName[controllableNameKey] || [];
-				controllableMap[controllableName] = {
+				controllableMap[controllableNameKey] = {
 					controllableName,
 					deviceCount: 0,
 					devices: [],
@@ -2020,8 +2034,8 @@ class myApp extends Homey.App
 				};
 			}
 
-			controllableMap[controllableName].deviceCount += 1;
-			controllableMap[controllableName].devices.push(
+			controllableMap[controllableNameKey].deviceCount += 1;
+			controllableMap[controllableNameKey].devices.push(
 				{
 					label: device.label || '',
 					oid: device.oid || '',
@@ -2042,6 +2056,8 @@ class myApp extends Homey.App
 						driverId: driver.driverId,
 						driverName: driver.driverName,
 						driverIcon: driver.driverIcon || '',
+						matchedControllableName: driver.supportedControllableNames.find((name) => String(name).toLowerCase() === controllableNameKey),
+						baseScore: scoreResult.baseScore,
 						score: scoreResult.score,
 						matchedCapabilities: scoreResult.matchedCapabilities,
 						unmatchedCapabilities: scoreResult.unmatchedCapabilities,
@@ -2717,7 +2733,9 @@ class myApp extends Homey.App
 		const matchedCapabilities = [];
 		const unmatchedCapabilities = [];
 
-		let score = 100;
+		// Candidates are filtered by supported controllable name before scoring.
+		const baseScore = 100;
+		let score = baseScore;
 		for (const capability of capabilities)
 		{
 			if (this.doesCapabilityMatchSomfyFeatures(capability, commands, states))
@@ -2738,6 +2756,7 @@ class myApp extends Homey.App
 
 		return {
 			score,
+			baseScore,
 			matchedCapabilities,
 			unmatchedCapabilities,
 			compatibilityRatio,
@@ -2757,7 +2776,10 @@ class myApp extends Homey.App
 
 		if (cap === 'windowcoverings_state')
 		{
-			return hasState(/openclosed|closure|position|deployment|blind|shutter|window/i);
+			// Match on feedback states, or on movement commands for one-way
+			// protocols such as RTS that report no states.
+			return hasState(/openclosed|closure|position|deployment|blind|shutter|window/i)
+				|| hasCommand(/^up$|^down$|^open$|^close$|^stop$/i);
 		}
 
 		if (cap === 'windowcoverings_set')
@@ -2784,6 +2806,21 @@ class myApp extends Homey.App
 		if (cap === 'onoff')
 		{
 			return hasCommand(/^on$|^off$|setonoff/i) || hasState(/onoff/i);
+		}
+
+		if (cap === 'homealarm_state')
+		{
+			return hasCommand(/^arm$|^disarm$|^partial$|homealarm/i) || hasState(/alarmstatusstate|homealarm/i);
+		}
+
+		if (cap === 'alarm_generic')
+		{
+			return hasState(/intrusion(?:detected)?state|generic/i) || hasCommand(/generic/i);
+		}
+
+		if (cap === 'tahoma_alarm_state')
+		{
+			return hasState(/currentalarmmodestate|tahoma/i) || hasCommand(/^settargetalarmmode$|tahoma/i);
 		}
 
 		if (cap === 'dim')
@@ -3203,8 +3240,11 @@ class myApp extends Homey.App
 					this.logInformation('initSync', 'Starting');
 				}
 
-				await this.newLogin_2(effectiveUsername, effectivePassword, effectiveRegion);
-				return;
+				if (await this.newLogin_2(effectiveUsername, effectivePassword, effectiveRegion))
+				{
+					return;
+				}
+				this.logInformation('initSync', 'Login unsuccessful; scheduling another attempt');
 			}
 			catch (error)
 			{
@@ -4079,39 +4119,49 @@ class myApp extends Homey.App
 		const errorCode = String(issue.errorCode || '');
 
 		return (message.indexOf('ACTUATORNOANSWER') >= 0)
+			|| (message.indexOf('ACTUATOR DID NOT ANSWER') >= 0)
 			|| (failureType === 'ACTUATORNOANSWER')
 			|| (errorCode === '102');
 	}
 
-	async cancelExecution(label, id, local)
+	async cancelExecution(label, id, local, deviceURL = '')
 	{
 		if (this.infoLogEnabled)
 		{
 			this.homey.app.logInformation(`${label}: cancelExecution`, ` ${id}`);
 		}
 
-		if (local && this.tahomaLocal && this.tahomaLocal.authenticated)
+		try
 		{
-			try
+			if (local)
 			{
+				if (deviceURL)
+				{
+					if (!await this.ensureLocalConnectionForDevice(deviceURL, this.getDeviceSessionUsername(deviceURL)))
+					{
+						throw new Error('No local connection available to cancel execution');
+					}
+				}
+				if (!this.tahomaLocal || !this.tahomaLocal.authenticated)
+				{
+					throw new Error('No local connection available to cancel execution');
+				}
 				await this.tahomaLocal.cancelExecution(id);
 			}
-			catch (err)
+			else
 			{
-
+				const cloudClient = deviceURL ? await this.getCloudClientForDevice(deviceURL) : this.tahomaCloud;
+				if (!cloudClient || !cloudClient.authenticated)
+				{
+					throw new Error('No cloud connection available to cancel execution');
+				}
+				await cloudClient.cancelExecution(id);
 			}
 		}
-
-		if (!this.localOnly && !local && this.tahomaCloud.authenticated)
+		catch (error)
 		{
-			try
-			{
-				await this.tahomaCloud.cancelExecution(id);
-			}
-			catch (err)
-			{
-
-			}
+			this.logInformation(`${label}: cancelExecution failed`, error.message ? error.message : error);
+			throw error;
 		}
 	}
 
@@ -4202,7 +4252,7 @@ class myApp extends Homey.App
 				const data = await cloudClient.executeDeviceAction(label, deviceURL, action, action2);
 				if (data.errorCode)
 				{
-					this.homey.app.logInformation(`${this.getName()}: onCapabilityHeatingModeState`, `Failed to send cloud command: ${JSON.stringify(action)}, error = ${data.error} (${data.errorCode})`);
+					this.logInformation(`${label}: Send cloud command`, `Failed to send cloud command: ${JSON.stringify(action)}, error = ${data.error} (${data.errorCode})`);
 						if (this.isActuatorNoAnswer(data))
 						{
 							throw (new Error('Actuator did not answer'));
@@ -4287,7 +4337,7 @@ class myApp extends Homey.App
 			return false;
 		}
 
-		return (text.indexOf('please leave 1 minutes between login attempts') >= 0)
+		return (/please leave 1 minutes between (?:cloud )?login attempts/).test(text)
 			|| (text.indexOf('far too many') >= 0)
 			|| (text.indexOf('blocked for ') >= 0);
 	}
@@ -4374,7 +4424,7 @@ class myApp extends Homey.App
 	{
 		const text = String(issue || '');
 		const lower = text.toLowerCase();
-		if (lower.indexOf('please leave 1 minutes between login attempts') >= 0)
+		if ((/please leave 1 minutes between (?:cloud )?login attempts/).test(lower))
 		{
 			return 'App offline: login is rate-limited. Retrying soon.';
 		}
@@ -4429,7 +4479,7 @@ class myApp extends Homey.App
 			return 'Sorry, login is temporarily blocked.';
 		}
 
-		const blockedMatch = lower.match(/blocked for\s+(\d+)s/);
+		const blockedMatch = lower.match(/blocked for\s+(\d+(?:\.\d+)?)s/);
 		if (blockedMatch)
 		{
 			const seconds = Number(blockedMatch[1]);
@@ -5191,6 +5241,11 @@ class myApp extends Homey.App
 				const data = await localClientForBridge.executeDeviceAction(label, deviceURL, action, action2);
 				if (data.errorCode)
 				{
+					if (this.isActuatorNoAnswer(data))
+					{
+						throw new Error('Actuator did not answer');
+					}
+					this.logInformation(`${label}: session local command failed`, data.error || data.errorCode);
 					continue;
 				}
 
@@ -5199,6 +5254,10 @@ class myApp extends Homey.App
 			}
 			catch (error)
 			{
+				if (this.isActuatorNoAnswer(error))
+				{
+					throw error;
+				}
 				this.logInformation(`${label}: session local attempt failed`, error.message ? error.message : error);
 			}
 		}
@@ -5259,6 +5318,11 @@ class myApp extends Homey.App
 			const data = await localClientForBridge.executeDeviceAction(label, deviceURL, action, action2);
 			if (data.errorCode)
 			{
+				if (this.isActuatorNoAnswer(data))
+				{
+					throw new Error('Actuator did not answer');
+				}
+				this.logInformation(`${label}: current-credentials local command failed`, data.error || data.errorCode);
 				return null;
 			}
 
@@ -5267,6 +5331,10 @@ class myApp extends Homey.App
 		}
 		catch (error)
 		{
+			if (this.isActuatorNoAnswer(error))
+			{
+				throw error;
+			}
 			this.logInformation(`${label}: current-credentials local attempt failed`, error.message ? error.message : error);
 		}
 
@@ -5280,7 +5348,7 @@ class myApp extends Homey.App
 			// Check if the local connection supports the device
 			if (combineSubURLs)
 			{
-				if (this.tahomaLocal.supportedDevices.findIndex((element) => element.deviceURL.startsWith(deviceURL)))
+				if (this.tahomaLocal.supportedDevices.some((element) => (element.deviceURL === deviceURL) || element.deviceURL.startsWith(`${deviceURL}#`)))
 				{
 					return true;
 				}
@@ -5300,7 +5368,7 @@ class myApp extends Homey.App
 		const cloudLoggedIn = (this.tahomaCloud && this.tahomaCloud.authenticated)
 			|| (this.tahomaCloudsBySession && Object.values(this.tahomaCloudsBySession).some((client) => client && client.authenticated));
 
-		return (cloudLoggedIn || (this.tahomaLocal && this.tahomaLocal.authenticated));
+		return !!(cloudLoggedIn || (this.tahomaLocal && this.tahomaLocal.authenticated));
 	}
 
 	normalizeSessionEmail(username)
@@ -5475,13 +5543,8 @@ class myApp extends Homey.App
 
 		const normalizedOriginal = originalUsername ? this.normalizeSessionEmail(originalUsername) : '';
 		const currentPrimaryUsername = this.normalizeSessionEmail(this.homey.settings.get('username'));
-		const wasPrimary = !!(normalizedOriginal && (normalizedOriginal === currentPrimaryUsername));
+		const wasPrimary = (normalized === currentPrimaryUsername) || !!(normalizedOriginal && (normalizedOriginal === currentPrimaryUsername));
 		const shouldBePrimary = !!setPrimary || wasPrimary || !currentPrimaryUsername;
-
-		if (normalizedOriginal && (normalizedOriginal !== normalized))
-		{
-			this.removeAccountSession(normalizedOriginal, { force: true, clearGlobalCredentials: false });
-		}
 
 		if (shouldBePrimary)
 		{
@@ -5504,6 +5567,11 @@ class myApp extends Homey.App
 			username: normalized, password, region, localToken,
 		});
 
+		if (normalizedOriginal && (normalizedOriginal !== normalized))
+		{
+			this.removeAccountSession(normalizedOriginal, { force: true, clearGlobalCredentials: false });
+		}
+
 		return this.getAccountSessionDetails(normalized);
 	}
 
@@ -5517,16 +5585,24 @@ class myApp extends Homey.App
 			throw new Error('Please enter a valid email address');
 		}
 
+		const wasPrimary = this.normalizeSessionEmail(this.homey.settings.get('username')) === normalized;
 		const result = this.removeAccountSession(normalized, { force, clearGlobalCredentials: true });
 		if (result && result.removed)
 		{
 			if (this.tahomaCloudsBySession && this.tahomaCloudsBySession[normalized])
 			{
+				try
+				{
+					await this.tahomaCloudsBySession[normalized].logout();
+				}
+				catch (error)
+				{
+					this.logInformation('deleteAccountSession logout', error.message ? error.message : error);
+				}
 				delete this.tahomaCloudsBySession[normalized];
 			}
 
-			const currentPrimaryUsername = this.normalizeSessionEmail(this.homey.settings.get('username'));
-			if (currentPrimaryUsername === normalized)
+			if (wasPrimary)
 			{
 				const remaining = this.getAccountSessions()
 					.filter((session) => session && session.password)
@@ -5535,14 +5611,26 @@ class myApp extends Homey.App
 				if (remaining.length > 0)
 				{
 					const next = remaining[0];
+					this.homey.settings.set('username', next.username);
+					this.homey.settings.set('password', next.password);
+					this.homey.settings.set('region', next.region || 'europe');
+					this.setPrimaryCloudSession(next.username);
 					try
 					{
-						await this.newLogin_2(next.username, next.password, next.region, next.localToken, true);
+						if (!await this.newLogin_2(next.username, next.password, next.region, next.localToken, true))
+						{
+							this.logInformation('deleteAccountSession promote next primary', 'Login unsuccessful; automatic polling will retry');
+						}
 					}
 					catch (error)
 					{
 						this.logInformation('deleteAccountSession promote next primary', error.message ? error.message : error);
 					}
+				}
+				else
+				{
+					this.primaryCloudSessionUsername = '';
+					this.tahomaCloud = new Tahoma(this.homey, false);
 				}
 			}
 		}
