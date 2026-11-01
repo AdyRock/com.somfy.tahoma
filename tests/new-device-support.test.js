@@ -120,6 +120,42 @@ test('RTS pergola driver uses timed open/close/stop controls without position fe
 	assert.equal(device.executionCmd, 'open');
 });
 
+test('Zigbee humidity and temperature sensors use existing measurement capabilities', async () =>
+{
+	const HumiditySensorDriver = loadModule('drivers/humidity_sensor/driver.js', { '../Driver': FakeBase });
+	const humidityDriver = new HumiditySensorDriver();
+	await humidityDriver.onInit();
+	assert.ok(humidityDriver.deviceType.includes('zigbee:RelativeHumidityComponent'));
+
+	const HumiditySensorDevice = loadModule('drivers/humidity_sensor/device.js', { '../SensorDevice': FakeBase });
+	const humidityDevice = new HumiditySensorDevice();
+	await humidityDevice.onInit();
+	assert.deepEqual(JSON.parse(JSON.stringify(humidityDevice.capabilitiesXRef)), [
+		{
+			homeyName: 'measure_humidity',
+			somfyNameGet: 'core:RelativeHumidityState',
+			somfyNameSet: [],
+		},
+	]);
+
+	const TemperatureSensorDriver = loadModule('drivers/io_temperature_sensor/driver.js', { '../Driver': FakeBase });
+	const temperatureDriver = new TemperatureSensorDriver();
+	temperatureDriver.homey = {
+		flow: {
+			getDeviceTriggerCard: () => ({ registerRunListener() { return this; } }),
+		},
+	};
+	await temperatureDriver.onInit();
+	assert.ok(temperatureDriver.deviceType.includes('zigbee:TemperatureSensorComponent'));
+
+	const TemperatureSensorDevice = loadModule('drivers/io_temperature_sensor/device.js', { '../SensorDevice': FakeBase });
+	const temperatureDevice = new TemperatureSensorDevice();
+	temperatureDevice.getData = () => ({ controllableName: 'zigbee:TemperatureSensorComponent' });
+	await temperatureDevice.onInit();
+	assert.ok(temperatureDevice.capabilitiesXRef.some((xref) =>
+		xref.homeyName === 'measure_temperature' && xref.somfyNameGet === 'core:TemperatureState'));
+});
+
 test('Zigbee AC device syncs remote state change events to the correct capabilities', async () =>
 {
 	const ZigbeeACDevice = loadModule('drivers/zigbee_ac/device.js', { '../SensorDevice': FakeBase });

@@ -24,6 +24,7 @@ class TemperatureSensorDriver extends Driver
 			'somfythermostat:SomfyThermostatTemperatureSensor',
 			'io:TemperatureSensor',
 			'io:TemperatureMeasurementSensor',
+			'zigbee:TemperatureSensorComponent',
 		];
 
 		/** * TEMPERATURE TRIGGERS ** */

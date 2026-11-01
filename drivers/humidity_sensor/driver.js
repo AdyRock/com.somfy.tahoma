@@ -9,6 +9,7 @@ class HumiditySensorDriver extends Driver
 	async onInit()
 	{
 		this.deviceType = [
+			'zigbee:RelativeHumidityComponent',
 			'netatmo:HumidityComponent',
 			'somfythermostat:SomfyThermostatHumiditySensor',
 		];

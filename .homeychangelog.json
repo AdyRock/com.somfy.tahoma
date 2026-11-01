@@ -1021,5 +1021,8 @@
 	},
 	"4.0.163": {
 		"en": "Change so the open / close / idle states are correctly reflected for window coverings."
+	},
+	"4.0.164": {
+		"en": "Added support for Zigbee humidity and temperature sensors using existing measurement capabilities."
 	}
 }
