@@ -2305,6 +2305,7 @@ class myApp extends Homey.App
 		const seen = new Set();
 		const ignoredControllableNames = new Set([
 			'internal:wificomponent',
+			'io:beaconiocomponent',
 			'zigbee:zigbeenetworknode',
 			'zigbee:somfyconfigurationtoolcomponent',
 		]);

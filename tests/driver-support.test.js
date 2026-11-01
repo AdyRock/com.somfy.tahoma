@@ -230,7 +230,13 @@ label: 'Blind',
 username: 'test@example.test',
 		getDeviceData: async () => [shade, { controllableName: 'ogp:Bridge', uiClass: 'ProtocolGateway', label: 'rts', deviceURL: 'ogp://gateway/rts' }],
 	};
-	app.tahomaLocal = { authenticated: true, getDeviceData: async () => [shade] };
+	app.tahomaLocal = {
+		authenticated: true,
+		getDeviceData: async () => [
+			shade,
+			{ deviceURL: 'io://gateway/2', label: 'IO Repeater', controllableName: 'io:BeaconIOComponent' },
+		],
+	};
 	const result = await app.getSomfyDevicesForDriverSupport();
 	assert.equal(result.length, 1);
 	assert.equal(result[0].source, 'cloud');
