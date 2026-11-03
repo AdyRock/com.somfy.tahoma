@@ -1,0 +1,24 @@
+{
+  "name": {
+    "en": "Pilot Wire Electric Heater",
+    "nl": "Pilot Wire Elektrische Verwarming",
+    "da": "Pilot Wire Elektrisk Varmer",
+    "de": "Pilot Wire Elektroheizung",
+    "es": "Calefactor Eléctrico Pilot Wire",
+    "fr": "Radiateur Électrique Fil Pilote",
+    "it": "Riscaldatore Elettrico Pilot Wire",
+    "no": "Pilot Wire Elektrisk Varmeovn",
+    "sv": "Pilot Wire Elektrisk Värmare",
+    "pl": "Elektryczny Grzejnik Pilot Wire",
+    "ru": "Электрический Обогреватель Pilot Wire",
+    "ko": "파일럿 와이어 전기 히터"
+  },
+  "class": "heater",
+  "capabilities": [
+    "onoff",
+    "heating_level_state"
+  ],
+  "$extends": [
+    "cloudDriver"
+  ]
+}

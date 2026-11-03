@@ -5,7 +5,7 @@
 const Driver = require('../Driver');
 
 /**
- * Driver class for the opening detector with the io:SomfyContactIOSystemSensor, rtds:RTDSContactSensor and io:SomfyBasicContactIOSystemSensor controllable name in TaHoma
+ * Driver class for the opening detector with the io:SomfyContactIOSystemSensor, rtds:RTDSContactSensor, io:SomfyBasicContactIOSystemSensor and io:ContactIOSystemDeviceSensor controllable name in TaHoma
  * @extends {Driver}
  */
 class OpeningDetectorDriver extends Driver
@@ -13,7 +13,7 @@ class OpeningDetectorDriver extends Driver
 
 	async onInit()
 	{
-		this.deviceType = ['io:SomfyContactIOSystemSensor', 'rtds:RTDSContactSensor', 'io:SomfyBasicContactIOSystemSensor'];
+		this.deviceType = ['io:SomfyContactIOSystemSensor', 'rtds:RTDSContactSensor', 'io:SomfyBasicContactIOSystemSensor', 'io:ContactIOSystemDeviceSensor'];
 
 		/** * CONTACT TRIGGERS ** */
 		this._triggerContactChange = this.homey.flow.getDeviceTriggerCard('contact_has_changed');

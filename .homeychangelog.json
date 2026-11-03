@@ -1024,5 +1024,8 @@
 	},
 	"4.0.164": {
 		"en": "Added support for Zigbee humidity and temperature sensors using existing measurement capabilities."
+	},
+	"4.0.165": {
+		"en": "Added support for the pilot wire electric heater (ovp), plus the contact and occupancy sensors built into Atlantic radiators."
 	}
 }

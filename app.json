@@ -35,7 +35,7 @@
     "ru": "Сердце вашего умного дома",
     "ko": "스마트 홈의 중심"
   },
-  "version": "4.0.164",
+  "version": "4.0.165",
   "compatibility": ">=12.0.0",
   "permissions": [
     "homey:manager:api"
@@ -14439,6 +14439,116 @@
         "homealarm_state"
       ],
       "id": "one_alarm"
+    },
+    {
+      "platforms": [
+        "local",
+        "cloud"
+      ],
+      "connectivity": [
+        "cloud"
+      ],
+      "pair": [
+        {
+          "id": "session_select"
+        },
+        {
+          "id": "login_credentials"
+        },
+        {
+          "id": "list_my_devices"
+        }
+      ],
+      "repair": [
+        {
+          "id": "login_credentials",
+          "template": "login_credentials",
+          "options": {
+            "logo": "logo.png",
+            "usernameLabel": {
+              "en": "E-mail address",
+              "nl": "E-mailadres",
+              "da": "E-mailadresse",
+              "de": "E-Mail-Adresse",
+              "es": "Dirección de correo electrónico",
+              "fr": "Adresse e-mail",
+              "it": "Indirizzo e-mail",
+              "no": "E-postadresse",
+              "sv": "E-postadress",
+              "pl": "Adres e-mail",
+              "ru": "Адрес электронной почты",
+              "ko": "이메일 주소"
+            },
+            "usernamePlaceholder": {
+              "en": "john@doe.com",
+              "nl": "john@doe.com",
+              "da": "john@doe.com",
+              "de": "john@doe.com",
+              "es": "john@doe.com",
+              "fr": "john@doe.com",
+              "it": "john@doe.com",
+              "no": "john@doe.com",
+              "sv": "john@doe.com",
+              "pl": "john@doe.com",
+              "ru": "john@doe.com",
+              "ko": "john@doe.com"
+            },
+            "passwordLabel": {
+              "en": "Password",
+              "nl": "Wachtwoord",
+              "da": "Adgangskode",
+              "de": "Passwort",
+              "es": "Contraseña",
+              "fr": "Mot de passe",
+              "it": "Password",
+              "no": "Passord",
+              "sv": "Lösenord",
+              "pl": "Hasło",
+              "ru": "Пароль",
+              "ko": "비밀번호"
+            },
+            "passwordPlaceholder": {
+              "en": "Password",
+              "nl": "Wachtwoord",
+              "da": "Adgangskode",
+              "de": "Passwort",
+              "es": "Contraseña",
+              "fr": "Mot de passe",
+              "it": "Password",
+              "no": "Passord",
+              "sv": "Lösenord",
+              "pl": "Hasło",
+              "ru": "Пароль",
+              "ko": "비밀번호"
+            }
+          }
+        }
+      ],
+      "icon": "/drivers/pilot_wire_electric_heater/assets/icon.svg",
+      "images": {
+        "large": "/drivers/pilot_wire_electric_heater/assets/images/large.png",
+        "small": "/drivers/pilot_wire_electric_heater/assets/images/small.png"
+      },
+      "name": {
+        "en": "Pilot Wire Electric Heater",
+        "nl": "Pilot Wire Elektrische Verwarming",
+        "da": "Pilot Wire Elektrisk Varmer",
+        "de": "Pilot Wire Elektroheizung",
+        "es": "Calefactor Eléctrico Pilot Wire",
+        "fr": "Radiateur Électrique Fil Pilote",
+        "it": "Riscaldatore Elettrico Pilot Wire",
+        "no": "Pilot Wire Elektrisk Varmeovn",
+        "sv": "Pilot Wire Elektrisk Värmare",
+        "pl": "Elektryczny Grzejnik Pilot Wire",
+        "ru": "Электрический Обогреватель Pilot Wire",
+        "ko": "파일럿 와이어 전기 히터"
+      },
+      "class": "heater",
+      "capabilities": [
+        "onoff",
+        "heating_level_state"
+      ],
+      "id": "pilot_wire_electric_heater"
     },
     {
       "platforms": [
