@@ -1027,5 +1027,8 @@
 	},
 	"4.0.165": {
 		"en": "Added support for the pilot wire electric heater (ovp), plus the contact and occupancy sensors built into Atlantic radiators."
+	},
+	"4.0.166": {
+		"en": "Added support for the Netatmo noise sensor and home operating mode controller."
 	}
 }

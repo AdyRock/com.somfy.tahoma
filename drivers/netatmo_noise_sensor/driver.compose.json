@@ -1,0 +1,23 @@
+{
+	"name": {
+		"en": "Netatmo Noise Sensor",
+		"nl": "Netatmo-geluidssensor",
+		"da": "Netatmo-støjsensor",
+		"de": "Netatmo-Geräuschsensor",
+		"es": "Sensor de ruido Netatmo",
+		"fr": "Capteur de bruit Netatmo",
+		"it": "Sensore di rumore Netatmo",
+		"no": "Netatmo-støysensor",
+		"sv": "Netatmo-ljudsensor",
+		"pl": "Czujnik hałasu Netatmo",
+		"ru": "Датчик шума Netatmo",
+		"ko": "Netatmo 소음 센서"
+	},
+	"class": "sensor",
+	"capabilities": [
+		"measure_noise"
+	],
+	"$extends": [
+		"cloudDriver"
+	]
+}

@@ -1,0 +1,23 @@
+{
+	"name": {
+		"en": "Netatmo Home Controller",
+		"nl": "Netatmo-huiscontroller",
+		"da": "Netatmo-hjemmestyring",
+		"de": "Netatmo-Haussteuerung",
+		"es": "Controlador de hogar Netatmo",
+		"fr": "Contrôleur de la maison Netatmo",
+		"it": "Controller domestico Netatmo",
+		"no": "Netatmo-hjemmekontroller",
+		"sv": "Netatmo-hemstyrenhet",
+		"pl": "Sterownik domu Netatmo",
+		"ru": "Контроллер дома Netatmo",
+		"ko": "Netatmo 홈 컨트롤러"
+	},
+	"class": "other",
+	"capabilities": [
+		"eh_operating_mode"
+	],
+	"$extends": [
+		"cloudDriver"
+	]
+}

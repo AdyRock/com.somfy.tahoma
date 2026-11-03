@@ -1,0 +1,250 @@
+<style>
+	html,
+	body
+	{
+		height: 100%;
+	}
+
+	#session_select_page
+	{
+		display: flex;
+		flex-direction: column;
+		min-height: 100%;
+	}
+
+	#session_select_content
+	{
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	#session_select_footer
+	{
+		margin-top: auto;
+		padding-top: 8px;
+	}
+
+</style>
+
+<div id="session_select_page">
+	<div id="session_select_content">
+		<p class="homey-subtitle">Use an existing account or sign in with another account.</p>
+
+		<form class="homey-form" id="session_form" action="javascript:void(0);" method="post">
+			<label class="homey-form-label" for="session_email">Existing account</label>
+			<select class="homey-form-select" name="session_email" id="session_email"></select>
+		</form>
+
+		<button class="homey-button-primary-full" id="use_new_account" type="button">Use another account</button>
+
+		<details id="manage_accounts_details">
+			<summary>Manage saved accounts</summary>
+			<br/>
+			<button class="homey-button-secondary-full" id="remove_selected_account" type="button">Remove selected account</button>
+			<br/>
+			<button class="homey-button-secondary-full" id="force_remove_selected_account" type="button">Force remove selected account</button>
+		</details>
+	</div>
+
+	<div id="session_select_footer">
+		<button class="homey-button-primary-full" id="submit_existing" type="button">Continue with selected account</button>
+	</div>
+</div>
+
+<script type="text/javascript">
+	Homey.setTitle('Account');
+	let continueBusy = false;
+
+	function setContinueBusy(isBusy)
+	{
+		continueBusy = !!isBusy;
+
+		const submitButton = document.getElementById('submit_existing');
+		submitButton.disabled = continueBusy;
+		submitButton.classList.toggle('is-loading', continueBusy);
+
+		document.getElementById('use_new_account').disabled = continueBusy;
+		document.getElementById('remove_selected_account').disabled = continueBusy;
+		document.getElementById('force_remove_selected_account').disabled = continueBusy;
+		document.getElementById('session_email').disabled = continueBusy;
+	}
+
+	function showError(err)
+	{
+		const message = err && err.message ? err.message : String(err || 'Unknown error');
+		Homey.alert(message, 'error');
+	}
+
+	function buildOptions(sessions)
+	{
+		const select = document.getElementById('session_email');
+		select.innerHTML = '';
+
+		if (!Array.isArray(sessions) || sessions.length === 0)
+		{
+			const option = document.createElement('option');
+			option.value = '';
+			option.text = 'No saved accounts found';
+			select.appendChild(option);
+			document.getElementById('submit_existing').disabled = true;
+			document.getElementById('remove_selected_account').disabled = true;
+			document.getElementById('force_remove_selected_account').disabled = true;
+			Homey.showView('login_credentials');
+			return;
+		}
+
+		document.getElementById('submit_existing').disabled = false;
+		document.getElementById('remove_selected_account').disabled = false;
+		document.getElementById('force_remove_selected_account').disabled = false;
+
+		sessions.forEach((entry) =>
+		{
+			const email = entry && (entry.email || entry.username) ? (entry.email || entry.username) : '';
+			const option = document.createElement('option');
+			option.value = email;
+			option.text = email;
+			select.appendChild(option);
+		});
+	}
+
+	function loadSessions()
+	{
+		Homey.emit('sessions_list', {}, function(err, result)
+		{
+			if (err)
+			{
+				showError(err);
+				buildOptions([]);
+				return;
+			}
+
+			const sessions = Array.isArray(result)
+				? result
+				: ((result && result.sessions) || []);
+			buildOptions(sessions);
+		});
+	}
+
+	loadSessions();
+
+	function removeSelected(force)
+	{
+		const selectedEmail = document.getElementById('session_email').value;
+		if (!selectedEmail)
+		{
+			Homey.alert('Select an account first.', 'warning');
+			return;
+		}
+
+		Homey.emit('session_delete', { username: selectedEmail, force: !!force }, function(deleteErr, deleteResult)
+		{
+			if (deleteErr)
+			{
+				showError(deleteErr);
+				return;
+			}
+
+			if (!deleteResult || !deleteResult.removed)
+			{
+				if (deleteResult && deleteResult.inUse)
+				{
+					Homey.alert('This account appears to be in use. Use force remove only if you are sure.', 'warning');
+				}
+				else if (deleteResult && deleteResult.notFound)
+				{
+					Homey.alert('Selected account was already removed.', 'warning');
+				}
+				else
+				{
+					Homey.alert('Could not remove selected account.', 'error');
+				}
+				loadSessions();
+				return;
+			}
+
+			Homey.alert('Selected account removed.', 'success');
+			loadSessions();
+		});
+	}
+
+	function continueWithSelectedAccount()
+	{
+		if (continueBusy)
+		{
+			return;
+		}
+
+		const selectedEmail = document.getElementById('session_email').value;
+		if (!selectedEmail)
+		{
+			Homey.showView('login_credentials');
+			return;
+		}
+
+		setContinueBusy(true);
+
+		Homey.emit('session_select', { username: selectedEmail }, function(selectErr, selectResult)
+		{
+			if (selectErr)
+			{
+				setContinueBusy(false);
+				showError(selectErr);
+				return;
+			}
+
+			if (!selectResult || !selectResult.found)
+			{
+				setContinueBusy(false);
+				Homey.alert('Selected account was not found. Please sign in again.', 'warning');
+				Homey.showView('login_credentials');
+				return;
+			}
+
+			Homey.emit('login', { username: selectedEmail }, function(loginErr, loginResult)
+			{
+				if (loginErr)
+				{
+					setContinueBusy(false);
+					showError(loginErr);
+					return;
+				}
+
+				if (!loginResult)
+				{
+					setContinueBusy(false);
+					Homey.alert('Login failed for selected account.', 'error');
+					return;
+				}
+
+				Homey.showView('list_my_devices');
+			});
+		});
+	}
+
+	document.getElementById('session_form').addEventListener('submit', function(event)
+	{
+		event.preventDefault();
+		continueWithSelectedAccount();
+	});
+
+	document.getElementById('submit_existing').addEventListener('click', function()
+	{
+		continueWithSelectedAccount();
+	});
+
+	document.getElementById('use_new_account').addEventListener('click', function()
+	{
+		Homey.showView('login_credentials');
+	});
+
+	document.getElementById('remove_selected_account').addEventListener('click', function()
+	{
+		removeSelected(false);
+	});
+
+	document.getElementById('force_remove_selected_account').addEventListener('click', function()
+	{
+		removeSelected(true);
+	});
+</script>

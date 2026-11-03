@@ -23,6 +23,17 @@ class FakeBase
 		}
 	}
 
+	async getStates()
+	{
+		return this.states;
+	}
+
+	async onCapability(...args)
+	{
+		this.capabilityCalls.push(args);
+		return args;
+	}
+
 	syncEventsList(events, capabilities, local)
 	{
 		return { events, capabilities, local };
@@ -152,8 +163,8 @@ test('Zigbee humidity and temperature sensors use existing measurement capabilit
 	const temperatureDevice = new TemperatureSensorDevice();
 	temperatureDevice.getData = () => ({ controllableName: 'zigbee:TemperatureSensorComponent' });
 	await temperatureDevice.onInit();
-	assert.ok(temperatureDevice.capabilitiesXRef.some((xref) =>
-		xref.homeyName === 'measure_temperature' && xref.somfyNameGet === 'core:TemperatureState'));
+	assert.ok(temperatureDevice.capabilitiesXRef.some((xref) => (
+		xref.homeyName === 'measure_temperature' && xref.somfyNameGet === 'core:TemperatureState')));
 });
 
 test('Zigbee AC device syncs remote state change events to the correct capabilities', async () =>
@@ -212,4 +223,56 @@ test('Zigbee AC device syncs remote state change events to the correct capabilit
 		['target_temperature.cooling', 23, { fromCloudSync: true }],
 	]);
 	assert.deepEqual(setValues, [['measure_temperature', 21.5]]);
+});
+
+test('Netatmo noise sensor exposes the reported noise state as a measurement', async () =>
+{
+	const NoiseDriver = loadModule('drivers/netatmo_noise_sensor/driver.js', { '../Driver': FakeBase });
+	const driver = new NoiseDriver();
+	await driver.onInit();
+	assert.deepEqual(JSON.parse(JSON.stringify(driver.deviceType)), ['netatmo:NoiseComponent']);
+
+	const NoiseDevice = loadModule('drivers/netatmo_noise_sensor/device.js', { '../SensorDevice': FakeBase });
+	const device = new NoiseDevice();
+	await device.onInit();
+	assert.deepEqual(JSON.parse(JSON.stringify(device.capabilitiesXRef)), [
+		{
+			homeyName: 'measure_noise',
+			somfyNameGet: 'core:NoiseState',
+			somfyNameSet: [],
+		},
+	]);
+
+	const syncCalls = [];
+	device.syncEventsList = (...args) => syncCalls.push(args);
+	await device.syncEvents([], false);
+	assert.deepEqual(syncCalls[0][0], []);
+	assert.equal(syncCalls[0][1], device.capabilitiesXRef);
+	assert.equal(syncCalls[0][2], false);
+});
+
+test('Netatmo home controller uses the reported default duration for operating-mode commands', async () =>
+{
+	const HomeControllerDriver = loadModule('drivers/netatmo_home_controller/driver.js', { '../Driver': FakeBase });
+	const driver = new HomeControllerDriver();
+	await driver.onInit();
+	assert.deepEqual(JSON.parse(JSON.stringify(driver.deviceType)), ['netatmo:HomeController']);
+
+	const HomeControllerDevice = loadModule('drivers/netatmo_home_controller/device.js', { '../SensorDevice': FakeBase });
+	const device = new HomeControllerDevice();
+	device.states = [{ name: 'netatmo:NetatmoDerogationDefaultDurationState', value: 3600 }];
+	device.capabilityCalls = [];
+	await device.onInit();
+	assert.equal(device.boostSync, true);
+
+	await device.onCapability(device.capabilitiesXRef[0], 'away');
+	assert.deepEqual(JSON.parse(JSON.stringify(device.capabilityCalls[0][0].parameterArray)), ['away', 3600]);
+	assert.equal(device.capabilityCalls[0][1], 'away');
+
+	device.states = [];
+	await assert.rejects(
+		() => device.onCapability(device.capabilitiesXRef[0], 'manual'),
+		/unavailable/,
+	);
+	assert.equal(device.capabilityCalls.length, 1);
 });
