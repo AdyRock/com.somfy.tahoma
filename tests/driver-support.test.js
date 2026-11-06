@@ -134,6 +134,68 @@ capabilities: ['windowcoverings_set'],
 	assert.deepEqual(plain(result.recommendations.find((entry) => entry.label === 'Unknown').candidates), []);
 });
 
+for (const source of ['runtime drivers', 'device API fallback'])
+{
+	test(`driver support detects devices installed through a different driver using ${source}`, async () =>
+	{
+		const { app, runtimeDrivers } = createApp();
+		app.getDriverDefinitions = async () => [{
+			driverId: 'recommended_blind',
+			driverName: 'Recommended blind',
+			capabilities: ['windowcoverings_set'],
+			supportedControllableNames: ['io:Blind'],
+		}];
+		const somfyDevices = [
+			{ deviceURL: 'io://gateway/1', oid: 'url-match', label: 'URL match' },
+			{ deviceURL: 'io://gateway/2', oid: 'oid-match', label: 'OID match' },
+			{ deviceURL: 'io://gateway/3', oid: 'id-match', label: 'Data ID match' },
+			{ deviceURL: 'io://gateway/4', oid: 'device-id-match', label: 'Device ID match' },
+			{ deviceURL: 'io://gateway/5', oid: 'not-installed', label: 'Not installed' },
+		];
+		app.getSomfyDevicesForDriverSupport = async () => somfyDevices.map((entry) => ({
+			...entry,
+			controllableName: 'io:Blind',
+			commands: ['open'],
+			states: [],
+		}));
+		const installedDevices = [
+			{ data: { deviceURL: 'io://gateway/1' } },
+			{ data: { oid: 'oid-match' } },
+			{ data: { id: 'id-match' } },
+			{ id: 'device-id-match', data: {} },
+			{ data: { deviceURL: 'io://gateway/1' } },
+		];
+		if (source === 'runtime drivers')
+		{
+			runtimeDrivers['homey:app:com.somfy.tahoma:existing_blind'] = {
+				getDevices: () => installedDevices.map((entry) => ({
+					...entry,
+					getData: () => entry.data,
+				})),
+			};
+		}
+		else
+		{
+			app.homey.devices = {
+				getDevices: async () => installedDevices.map((entry) => ({
+					...entry,
+					driverId: 'homey:app:com.somfy.tahoma:existing_blind',
+				})),
+			};
+		}
+
+		const result = await app.getDriverSupportMatrix();
+		assert.equal(result.totalSupportedInstalled, 4);
+		assert.equal(result.totalSupportedNotInstalled, 1);
+		assert.equal(result.totalUnsupported, 0);
+		for (const entry of result.recommendations)
+		{
+			assert.equal(entry.recommendedDriverId, 'recommended_blind');
+			assert.equal(entry.isInstalled, entry.label !== 'Not installed', entry.label);
+		}
+	});
+}
+
 test('One Alarm matches its real commands and states and retains its controllable-name score without evidence', async () =>
 {
 	const { app } = createApp();

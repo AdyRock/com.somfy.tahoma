@@ -2141,22 +2141,7 @@ class myApp extends Homey.App
 			})
 			.sort((a, b) => a.driverName.localeCompare(b.driverName));
 
-		const installedKeysByDriverId = {};
-
-		const addInstalledKey = (driverShortId, key) =>
-		{
-			if (!driverShortId || !key)
-			{
-				return;
-			}
-
-			if (!installedKeysByDriverId[driverShortId])
-			{
-				installedKeysByDriverId[driverShortId] = new Set();
-			}
-
-			installedKeysByDriverId[driverShortId].add(key);
-		};
+		const installedKeys = new Set();
 
 		const addInstalledDeviceEntry = (driverShortId, existing, dataOverride = null) =>
 		{
@@ -2168,7 +2153,7 @@ class myApp extends Homey.App
 			const data = dataOverride || existing.data || {};
 			if (data.deviceURL)
 			{
-				addInstalledKey(driverShortId, `url:${data.deviceURL}`);
+				installedKeys.add(`url:${data.deviceURL}`);
 			}
 
 			const candidateIds = [data.id, data.oid, existing.id];
@@ -2176,7 +2161,7 @@ class myApp extends Homey.App
 			{
 				if (candidateId)
 				{
-					addInstalledKey(driverShortId, `id:${candidateId}`);
+					installedKeys.add(`id:${candidateId}`);
 				}
 			}
 		};
@@ -2216,7 +2201,7 @@ class myApp extends Homey.App
 			}
 		}
 
-		if (Object.keys(installedKeysByDriverId).length === 0 && this.homey.devices && (typeof this.homey.devices.getDevices === 'function'))
+		if (installedKeys.size === 0 && this.homey.devices && (typeof this.homey.devices.getDevices === 'function'))
 		{
 			try
 			{
@@ -2250,8 +2235,6 @@ class myApp extends Homey.App
 				continue;
 			}
 
-			const recommendedDriverShortId = recommendedDriverId.split(':').pop();
-			const installedKeys = installedKeysByDriverId[recommendedDriverShortId] || new Set();
 			const deviceURL = String(recommendation.deviceURL || '').trim();
 			const oid = String(recommendation.oid || '').trim();
 			const byUrl = !!(deviceURL && installedKeys.has(`url:${deviceURL}`));

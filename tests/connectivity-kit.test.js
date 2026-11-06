@@ -263,6 +263,149 @@ test('window covering state returns from idle when closure reaches an endpoint',
 	}
 });
 
+test('Velux feedback agrees between polling and events for every inversion setting', async () =>
+{
+	for (const invertPosition of [false, true])
+	{
+		for (const invertUpDown of [false, true])
+		{
+			for (const invertTile of [false, true])
+			{
+				const device = create('drivers\\io_velux_interior_blind\\device.js', 'ogp:Blind',
+					['windowcoverings_state', 'windowcoverings_set', 'windowcoverings_closed'],
+					{ invertPosition, invertUpDown, invertTile });
+				await device.onInit();
+				device.homey.app.isLoggedIn = () => true;
+				for (const closure of [0, 8, 90, 100, '0', '90', '100'])
+				{
+					const raw = Number(closure);
+					const physicalState = raw === 0 ? 'open' : 'closed';
+					const expectedState = raw === 0 || raw === 100
+						? device.windowcoveringsStatesMap[physicalState] : 'idle';
+					const expectedClosed = invertTile ? expectedState === 'up' : expectedState === 'down';
+					const expectedPosition = invertPosition ? raw / 100 : 1 - raw / 100;
+					const states = Object.freeze([
+						Object.freeze({ name: 'core:OpenClosedState', value: physicalState }),
+						Object.freeze({ name: 'core:ClosureState', value: closure }),
+					]);
+					device.homey.app.getDeviceStates = async () => states;
+					await device.sync();
+					assert.equal(device.values.windowcoverings_state, expectedState);
+					assert.equal(device.values.windowcoverings_closed, expectedClosed);
+					assert.ok(Math.abs(device.values.windowcoverings_set - expectedPosition) < 1e-12);
+					await device.syncEvents([{
+						name: 'DeviceStateChangedEvent',
+						deviceURL: device.data.deviceURL,
+						deviceStates: states,
+					}], false);
+					assert.equal(device.values.windowcoverings_state, expectedState);
+					assert.equal(device.values.windowcoverings_closed, expectedClosed);
+					assert.ok(Math.abs(device.values.windowcoverings_set - expectedPosition) < 1e-12);
+				}
+				for (const [physicalState, position] of [['open', 1], ['closed', 0]])
+				{
+					const state = device.windowcoveringsStatesMap[physicalState];
+					const closed = invertTile ? state === 'up' : state === 'down';
+					await device.listeners.windowcoverings_set(invertPosition ? 1 - position : position, { fromCloudSync: true });
+					assert.equal(device.values.windowcoverings_closed, closed);
+					await device.syncEvents([{
+						name: 'DeviceStateChangedEvent',
+						deviceURL: device.data.deviceURL,
+						deviceStates: [{ name: 'core:OpenClosedState', value: physicalState }],
+					}], false);
+					assert.equal(device.values.windowcoverings_state, state);
+					assert.equal(device.values.windowcoverings_closed, closed);
+				}
+			}
+		}
+	}
+});
+
+test('Velux closure-only feedback updates polling and events without reversing physical endpoints', async () =>
+{
+	const device = create('drivers\\io_velux_interior_blind\\device.js', 'ogp:Blind',
+		['windowcoverings_state', 'windowcoverings_set', 'windowcoverings_closed'],
+		{ invertPosition: true });
+	await device.onInit();
+	device.homey.app.isLoggedIn = () => true;
+	for (const [closure, state, closed] of [[100, 'down', true], [0, 'up', false], [90, 'idle', false]])
+	{
+		const states = [{ name: 'core:ClosureState', value: closure }];
+		device.homey.app.getDeviceStates = async () => states.map((entry) => ({ ...entry }));
+		await device.sync();
+		assert.equal(device.values.windowcoverings_state, state);
+		assert.equal(device.values.windowcoverings_closed, closed);
+		await device.syncEvents([{
+			name: 'DeviceStateChangedEvent',
+			deviceURL: device.data.deviceURL,
+			deviceStates: states,
+		}], false);
+		assert.equal(device.values.windowcoverings_state, state);
+		assert.equal(device.values.windowcoverings_closed, closed);
+	}
+});
+
+test('Velux position feedback takes precedence over binary feedback regardless of state order', async () =>
+{
+	const device = create('drivers\\io_velux_interior_blind\\device.js', 'ogp:Blind',
+		['windowcoverings_state', 'windowcoverings_set', 'windowcoverings_closed']);
+	await device.onInit();
+	device.homey.app.isLoggedIn = () => true;
+	for (const closure of [0, 90, 100])
+	{
+		for (const reverse of [false, true])
+		{
+			const states = [
+				{ name: 'core:ClosureState', value: closure },
+				{ name: 'core:OpenClosedState', value: closure === 0 ? 'closed' : 'open' },
+			];
+			if (reverse)
+			{
+				states.reverse();
+			}
+			device.homey.app.getDeviceStates = async () => states;
+			await device.sync();
+			const polled = { ...device.values };
+			await device.syncEvents([{
+				name: 'DeviceStateChangedEvent',
+				deviceURL: device.data.deviceURL,
+				deviceStates: states,
+			}], false);
+			assert.deepEqual(device.values, polled);
+			assert.equal(device.values.windowcoverings_state, closure === 0 ? 'up' : closure === 100 ? 'down' : 'idle');
+			assert.equal(device.values.windowcoverings_closed, closure === 100);
+		}
+	}
+});
+
+test('Velux feedback waits for capability writes so newer open feedback wins', async () =>
+{
+	const device = create('drivers\\io_velux_interior_blind\\device.js', 'ogp:Blind',
+		['windowcoverings_state', 'windowcoverings_set', 'windowcoverings_closed']);
+	await device.onInit();
+	device.setCapabilityValue = async (name, value) =>
+	{
+		await new Promise((resolve) => setTimeout(resolve, value === 'down' || value === true ? 20 : 1));
+		device.values[name] = value;
+	};
+	await device.syncEvents([100, 0].map((value) => ({
+		name: 'DeviceStateChangedEvent',
+		deviceURL: device.data.deviceURL,
+		deviceStates: [{ name: 'core:ClosureState', value }],
+	})), false);
+	await new Promise((resolve) => setTimeout(resolve, 40));
+	assert.equal(device.values.windowcoverings_state, 'up');
+	assert.equal(device.values.windowcoverings_closed, false);
+	device.homey.app.isLoggedIn = () => true;
+	device.homey.app.getDeviceStates = async () => [
+		{ name: 'core:OpenClosedState', value: 'closed' },
+		{ name: 'core:ClosureState', value: 100 },
+	];
+	await device.syncEvents(null, false);
+	assert.equal(device.values.windowcoverings_state, 'down');
+	assert.equal(device.values.windowcoverings_closed, true);
+});
+
 test('Zigbee smart plugs can be paired as sockets and support on/off and timers', async () =>
 {
 	const driver = create('drivers\\on_off_socket\\driver.js', 'zigbee:OnOffComponent', []);

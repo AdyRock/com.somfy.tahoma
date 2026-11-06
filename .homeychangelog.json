@@ -1030,5 +1030,8 @@
 	},
 	"4.0.166": {
 		"en": "Added support for the Netatmo noise sensor and home operating mode controller."
+	},
+	"4.0.167": {
+		"en": "Fixed window covering tiles showing closed when TaHoma reports open, and made position and state updates consistent with inversion settings. Fixed driver recommendations incorrectly showing devices as not added when they are already paired through a different driver."
 	}
 }

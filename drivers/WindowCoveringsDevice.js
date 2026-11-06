@@ -269,16 +269,16 @@ class WindowCoveringsDevice extends Device
 				this.homey.app.logInformation(`${this.getName()}: onCapabilityWindowcoveringsState`, `Old Value: ${oldValue}, New Value: ${value}`);
 			}
 
-			this.setCapabilityValue('windowcoverings_state', value).catch(this.error);
+			await this.setCapabilityValue('windowcoverings_state', value);
 			if (this.hasCapability('windowcoverings_closed'))
 			{
 				if (this.invertTile)
 				{
-					this.setCapabilityValue('windowcoverings_closed', value === 'up').catch(this.error);
+					await this.setCapabilityValue('windowcoverings_closed', value === 'up');
 				}
 				else
 				{
-					this.setCapabilityValue('windowcoverings_closed', value === 'down').catch(this.error);
+					await this.setCapabilityValue('windowcoverings_closed', value === 'down');
 				}
 			}
 		}
@@ -353,12 +353,12 @@ class WindowCoveringsDevice extends Device
 				this.homey.app.logInformation(`${this.getName()}: onCapabilityWindowcoveringsSet`, `Old Value ${oldValue}, New Value: ${value}`);
 			}
 
-			this.setCapabilityValue('windowcoverings_set', value).catch(this.error);
+			await this.setCapabilityValue('windowcoverings_set', value);
 			if (this.hasCapability('windowcoverings_closed'))
 			{
 				const position = this.invertPosition ? 1 - value : value;
-				const closedPosition = Number(this.invertTile === this.invertUpDown);
-				this.setCapabilityValue('windowcoverings_closed', position === closedPosition).catch(this.error);
+				const closedPosition = Number(this.invertTile !== this.invertUpDown);
+				await this.setCapabilityValue('windowcoverings_closed', position === closedPosition);
 			}
 		}
 	}
@@ -574,6 +574,19 @@ class WindowCoveringsDevice extends Device
 		return this.onCapabilityWindowcoveringsState(value ? 'down' : 'up', null);
 	}
 
+	getWindowcoveringsStateForClosure(value)
+	{
+		const closure = Number(value);
+		if ((typeof value !== 'number' && typeof value !== 'string')
+			|| String(value).trim() === '' || !Number.isFinite(closure) || closure < 0 || closure > 100)
+		{
+			throw new Error(`Invalid ${this.positionStateName}: ${value}`);
+		}
+
+		return closure === 0 || closure === 100
+			? this.windowcoveringsStatesMap[closure === 0 ? 'open' : 'closed'] : 'idle';
+	}
+
 	/**
 	 * Sync the state of the devices from the TaHoma cloud with Homey
 	 */
@@ -656,6 +669,8 @@ class WindowCoveringsDevice extends Device
 					this.setAvailable().catch(this.error);
 				}
 
+				const closureValue = closureState ? Number(closureState.value) : null;
+				const positionState = closureState ? this.getWindowcoveringsStateForClosure(closureState.value) : null;
 				if (openClosedState)
 				{
 					this.homey.app.logStates(`${this.getName()}: ${this.openClosedStateName} = ${openClosedState.value}`);
@@ -663,36 +678,27 @@ class WindowCoveringsDevice extends Device
 					{
 						this.updatePedestrianState(openClosedState.value);
 					}
+				}
 
-					// Convert Tahoma states to Homey equivalent
-					if (closureState && (closureState.value !== 0) && (closureState.value !== 100))
-					{
-						// Not fully open or closed
-						openClosedState.value = 'idle';
-					}
-					else
-					{
-						openClosedState.value = this.windowcoveringsStatesMap[openClosedState.value];
-					}
-
-					this.triggerCapabilityListener('windowcoverings_state', openClosedState.value,
+				if (openClosedState || (closureState && this.openClosedStateName === 'core:OpenClosedState'))
+				{
+					const stateValue = closureState && (positionState === 'idle' || this.openClosedStateName === 'core:OpenClosedState')
+						? positionState : this.windowcoveringsStatesMap[openClosedState.value];
+					await this.triggerCapabilityListener('windowcoverings_state', stateValue,
 					{
 						fromCloudSync: true,
-					}).catch(this.error);
+					});
 				}
 
 				if (closureState)
 				{
 					this.homey.app.logStates(`${this.getName()}: ${this.positionStateName} = ${closureState.value}`);
 
-					if (this.invertPosition)
-					{
-						closureState.value = 100 - closureState.value;
-					}
-					this.triggerCapabilityListener('windowcoverings_set', 1 - (closureState.value / 100),
+					const position = this.invertPosition ? 100 - closureValue : closureValue;
+					await this.triggerCapabilityListener('windowcoverings_set', 1 - (position / 100),
 					{
 						fromCloudSync: true,
-					}).catch(this.error);
+					});
 				}
 
 				if (tiltState && this.hasCapability('windowcoverings_tilt_set'))
@@ -784,7 +790,7 @@ class WindowCoveringsDevice extends Device
 	{
 		if (events === null)
 		{
-			this.sync();
+			await this.sync();
 			return;
 		}
 
@@ -873,26 +879,23 @@ class WindowCoveringsDevice extends Device
 								if (!this.checkForDuplicatesEvents(events, i, x + 1, myURL, this.positionStateName))
 								{
 									// Device position
-									let closureStateValue = parseInt(deviceState.value, 10);
-									this.homey.app.logStates(`${this.getName()}: ${this.positionStateName} = ${closureStateValue}`);
+									const rawClosure = Number(deviceState.value);
+									const positionState = this.getWindowcoveringsStateForClosure(deviceState.value);
+									const closureStateValue = this.invertPosition ? 100 - rawClosure : rawClosure;
+									this.homey.app.logStates(`${this.getName()}: ${this.positionStateName} = ${rawClosure}`);
 
-									if (this.invertPosition)
-									{
-										closureStateValue = 100 - closureStateValue;
-									}
-
-									this.triggerCapabilityListener('windowcoverings_set', 1 - (closureStateValue / 100),
+									await this.triggerCapabilityListener('windowcoverings_set', 1 - (closureStateValue / 100),
 									{
 										fromCloudSync: true,
-									}).catch(this.error);
+									});
 
 									if ((closureStateValue !== 0) && (closureStateValue !== 100))
 									{
 										// Not fully open or closed
-										this.triggerCapabilityListener('windowcoverings_state', 'idle',
+										await this.triggerCapabilityListener('windowcoverings_state', 'idle',
 										{
 											fromCloudSync: true,
-										}).catch(this.error);
+										});
 
 										lastPosition = closureStateValue;
 									}
@@ -901,11 +904,10 @@ class WindowCoveringsDevice extends Device
 										lastPosition = null;
 										if (this.openClosedStateName === 'core:OpenClosedState')
 										{
-											const openClosedStateValue = this.windowcoveringsStatesMap[closureStateValue === 0 ? 'open' : 'closed'];
-											this.triggerCapabilityListener('windowcoverings_state', openClosedStateValue,
+											await this.triggerCapabilityListener('windowcoverings_state', positionState,
 											{
 												fromCloudSync: true,
-											}).catch(this.error);
+											});
 										}
 									}
 								}
@@ -920,8 +922,10 @@ class WindowCoveringsDevice extends Device
 										this.updatePedestrianState(deviceState.value);
 									}
 
-									// Device Open / Closed state. Only process if the last position was 0 or 100
-									if (lastPosition === null)
+									// Position feedback in this event takes precedence over the binary state.
+									const hasClosureState = this.openClosedStateName === 'core:OpenClosedState'
+										&& element.deviceStates.some((state) => state.name === this.positionStateName);
+									if (lastPosition === null && !hasClosureState)
 									{
 										let openClosedStateValue = deviceState.value;
 										this.homey.app.logStates(`${this.getName()}: ${this.openClosedStateName} = ${openClosedStateValue}`);
@@ -929,10 +933,10 @@ class WindowCoveringsDevice extends Device
 										// Convert Tahoma states to Homey equivalent
 										openClosedStateValue = this.windowcoveringsStatesMap[openClosedStateValue];
 
-										this.triggerCapabilityListener('windowcoverings_state', openClosedStateValue,
+										await this.triggerCapabilityListener('windowcoverings_state', openClosedStateValue,
 										{
 											fromCloudSync: true,
-										}).catch(this.error);
+										});
 									}
 
 									lastPosition = null;
