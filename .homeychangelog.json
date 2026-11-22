@@ -1033,5 +1033,8 @@
 	},
 	"4.0.167": {
 		"en": "Fixed window covering tiles showing closed when TaHoma reports open, and made position and state updates consistent with inversion settings. Fixed driver recommendations incorrectly showing devices as not added when they are already paired through a different driver."
+	},
+	"4.0.168": {
+		"en": "Fixed the German luminance flow conditions to display and evaluate positive and negative states correctly. Removed deprecated polling mode and polling interval flow cards that were no longer implemented."
 	}
 }

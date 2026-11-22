@@ -123,13 +123,13 @@
 				"en": "The luminance !{{is|isn't}} more than",
 				"nl": "De lichtsterkte !{{is|is niet}} meer dan",
 				"fr": "La luminance !{{n'est pas|est}} supérieure à",
-				"de": "Die Helligkeit !{{nicht|ist}} mehr als"
+				"de": "Die Helligkeit !{{ist|ist nicht}} mehr als"
 			},
 			"titleFormatted": {
 				"en": "The luminance !{{is|isn't}} more than [[luminance]]",
 				"nl": "De lichtsterkte !{{is|is niet}} meer dan [[luminance]]",
 				"fr": "La luminance !{{n'est pas|est}} supérieure à [[luminance]]",
-				"de": "Die Helligkeit !{{nicht|ist}} mehr als [[luminance]]"
+				"de": "Die Helligkeit !{{ist|ist nicht}} mehr als [[luminance]]"
 			},
 			"args": [
 				{
@@ -156,13 +156,13 @@
 				"en": "The luminance !{{is|isn't}} less than",
 				"nl": "De lichtsterkte !{{is|is niet}} minder dan",
 				"fr": "La luminance !{{n'est pas|est}} inférieure à",
-				"de": "Die Helligkeit !{{nicht|ist}} weniger als"
+				"de": "Die Helligkeit !{{ist|ist nicht}} weniger als"
 			},
 			"titleFormatted": {
 				"en": "The luminance !{{is|isn't}} less than [[luminance]]",
 				"nl": "De lichtsterkte !{{is|is niet}} minder dan [[luminance]]",
 				"fr": "La luminance !{{n'est pas|est}} inférieure à [[luminance]]",
-				"de": "Die Helligkeit !{{nicht|ist}} weniger als [[luminance]]"
+				"de": "Die Helligkeit !{{ist|ist nicht}} weniger als [[luminance]]"
 			},
 			"args": [
 				{
@@ -189,13 +189,13 @@
 				"en": "The luminance !{{is|isn't}} between",
 				"nl": "De lichtsterkte !{{is|is niet}} tussen",
 				"fr": "La luminance !{{n'est pas|est}} comprise entre",
-				"de": "Die Helligkeit !{{nicht|ist}} zwischen"
+				"de": "Die Helligkeit !{{ist|ist nicht}} zwischen"
 			},
 			"titleFormatted": {
 				"en": "The luminance !{{is|isn't}} between [[luminance_from]] and [[luminance_to]]",
 				"nl": "De lichtsterkte !{{is|is niet}} tussen [[luminance_from]] en [[luminance_to]]",
 				"fr": "La luminance !{{n'est pas|est}} comprise entre [[luminance_from]] et [[luminance_to]]",
-				"de": "Die Helligkeit !{{nicht|ist}} zwischen [[luminance_from]] und [[luminance_to]]"
+				"de": "Die Helligkeit !{{ist|ist nicht}} zwischen [[luminance_from]] und [[luminance_to]]"
 			},
 			"args": [
 				{
