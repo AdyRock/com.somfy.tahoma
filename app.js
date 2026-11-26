@@ -4498,6 +4498,42 @@ class myApp extends Homey.App
 		await this.setConnectivityWarningForAllDevices(userWarning);
 	}
 
+	async getDeviceMetadata(deviceURL)
+	{
+		if (!deviceURL || this.usingDebugData)
+		{
+			return null;
+		}
+
+		try
+		{
+			if (await this.ensureLocalConnectionForDevice(deviceURL, this.getDeviceSessionUsername(deviceURL)))
+			{
+				const device = await this.tahomaLocal.getDeviceMetadata(deviceURL);
+				if (device?.deviceURL === deviceURL)
+				{
+					return device;
+				}
+			}
+		}
+		catch (error)
+		{
+			this.logInformation('getDeviceMetadata local', error.message ? error.message : error);
+		}
+
+		const cloudClient = await this.getCloudClientForDevice(deviceURL);
+		if (!cloudClient.authenticated && (cloudClient === this.tahomaCloud))
+		{
+			await this.initSync();
+		}
+		if (cloudClient.authenticated)
+		{
+			const device = await cloudClient.getDeviceMetadata(deviceURL);
+			return device?.deviceURL === deviceURL ? device : null;
+		}
+		return null;
+	}
+
 	async getDeviceStates(deviceURL)
 	{
 		if (this.tahomaLocal && this.tahomaLocal.authenticated && this.tahomaLocal.supportedDevices)

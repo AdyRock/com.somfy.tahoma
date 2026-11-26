@@ -556,3 +556,120 @@ test('remote polling gets the physical remote battery for each channel', async (
 		assert.equal(device.values.measure_battery, 99);
 	}
 });
+
+function garageDoorMetadata(aliases = [{ type: 'partial', id: '55305', features: ['openClose'] }])
+{
+	return {
+		definition: {
+			commands: [
+				{ commandName: 'open', nparams: 0 },
+				{ commandName: 'close', nparams: 0 },
+				{ commandName: 'stop', nparams: 0 },
+				{ commandName: 'goToAlias', nparams: 1 },
+			],
+		},
+		attributes: [{ name: 'core:SupportedAliases', value: aliases, type: 10 }],
+	};
+}
+
+function createGarageDoor(metadata, controllableName = 'io:DynamicGarageDoor', invertUpDown = false)
+{
+	const device = create('drivers/io_garage_door_partial/device.js', controllableName,
+		['windowcoverings_state', 'my_position'], { invertUpDown });
+	device.data.deviceURL = 'io://test/garage-door';
+	device.homey.app.getDeviceMetadata = async () => metadata;
+	return device;
+}
+
+test('dynamic garage door sends STOP after open and close, even if cancellation fails', async () =>
+{
+	for (const invertUpDown of [false, true])
+	{
+		const device = createGarageDoor(garageDoorMetadata(), 'io:DynamicGarageDoor', invertUpDown);
+		const cancellations = [];
+		device.homey.app.cancelExecution = async (label, id, local, url) =>
+		{
+			cancellations.push([id, local, url]);
+			if (device.actions.at(-1).name !== 'stop')
+			{
+				throw new Error('Execution already completed');
+			}
+		};
+		await device.onInit();
+		assert.deepEqual(device.actions, []);
+		await device.listeners.windowcoverings_state('up');
+		await device.listeners.windowcoverings_state('idle');
+		await device.listeners.windowcoverings_state('down');
+		await device.listeners.windowcoverings_state('idle');
+		assert.deepEqual(device.actions, [
+			{ name: invertUpDown ? 'close' : 'open', parameters: [] },
+			{ name: 'stop', parameters: [] },
+			{ name: invertUpDown ? 'open' : 'close', parameters: [] },
+			{ name: 'stop', parameters: [] },
+		]);
+		assert.deepEqual(cancellations, Array.from({ length: 3 }, () => ['test', false, device.data.deviceURL]));
+
+		await device.onSettings({ newSettings: { invertUpDown: !invertUpDown }, changedKeys: ['invertUpDown'] });
+		await device.listeners.windowcoverings_state('idle');
+		assert.deepEqual(device.actions.at(-1), { name: 'stop', parameters: [] });
+		assert.equal(device.actions.length, 5);
+	}
+});
+
+test('dynamic garage door MY Position sends the advertised partial alias ID', async () =>
+{
+	const device = createGarageDoor(garageDoorMetadata());
+	await device.onInit();
+	await device.listeners.my_position();
+	assert.deepEqual(device.actions, [{ name: 'goToAlias', parameters: ['55305'] }]);
+
+	const favorite = { type: 'favorite1', id: '1' };
+	const invalidPartial = { type: 'partial', id: ' ' };
+	device.homey.app.getDeviceMetadata = async () => garageDoorMetadata([favorite, invalidPartial, { type: 'partial', id: '67890' }]);
+	await device.listeners.my_position();
+	assert.deepEqual(device.actions.at(-1), { name: 'goToAlias', parameters: ['67890'] });
+
+	device.homey.app.getDeviceMetadata = async () => garageDoorMetadata([favorite, invalidPartial]);
+	await device.listeners.my_position();
+	assert.equal(device.actions.length, 2);
+});
+
+test('a garage door STOP supersedes MY Position while its alias lookup is pending', async () =>
+{
+	const device = createGarageDoor(garageDoorMetadata());
+	await device.onInit();
+	await device.listeners.windowcoverings_state('up');
+	await device.listeners.windowcoverings_state('idle');
+
+	const { promise, resolve } = Promise.withResolvers();
+	device.homey.app.getDeviceMetadata = () => promise;
+	const myPosition = device.listeners.my_position();
+	await device.listeners.windowcoverings_state('idle');
+	resolve(garageDoorMetadata());
+	await myPosition;
+
+	assert.deepEqual(device.actions.map((action) => action.name), ['open', 'stop', 'stop']);
+});
+
+test('garage door inversion keeps STOP disabled where unsupported', async () =>
+{
+	for (const [type, metadata, myCommand] of [
+		['io:DynamicGarageDoor', null, null],
+		['io:DynamicGarageDoor', { definition: { commands: [{ commandName: 'open', nparams: 0 }] } }, null],
+		['io:DiscreteGarageOpenerWithPartialPositionIOComponent', garageDoorMetadata(), 'partialPosition'],
+		['io:DiscreteGarageOpenerIOComponent', garageDoorMetadata(), null],
+		['ogp:GarageDoor', garageDoorMetadata(), null],
+	])
+	{
+		const device = createGarageDoor(metadata, type);
+		await device.onInit();
+		await device.onSettings({ newSettings: { invertUpDown: true }, changedKeys: ['invertUpDown'] });
+		await device.listeners.windowcoverings_state('idle');
+		assert.deepEqual(device.actions, []);
+		if (device.hasCapability('my_position'))
+		{
+			await device.listeners.my_position();
+		}
+		assert.deepEqual(device.actions, myCommand ? [{ name: myCommand, parameters: [] }] : []);
+	}
+});

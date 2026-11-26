@@ -185,7 +185,7 @@ class WindowCoveringsDevice extends Device
 		}
 	}
 
-	async onCapabilityWindowcoveringsState(value, opts)
+	async onCapabilityWindowcoveringsState(value, opts, forceStop = false)
 	{
 		if (!opts || !opts.fromCloudSync)
 		{
@@ -201,7 +201,7 @@ class WindowCoveringsDevice extends Device
 				const deviceData = this.getData();
 				const nextCommand = this.windowcoveringsActions[value];
 
-				if (this.shouldThrottleDuplicateCommand(`state:${nextCommand}`))
+				if (this.shouldThrottleDuplicateCommand(`state:${nextCommand}`) && !forceStop)
 				{
 					this.homey.app.logInformation(`${this.getName()}: onCapabilityWindowcoveringsState`, `Ignoring duplicate command ${nextCommand}`);
 					return;
@@ -209,14 +209,24 @@ class WindowCoveringsDevice extends Device
 
 				if (value === 'idle' && (this.executionId !== null))
 				{
-					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
+					try
+					{
+						await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
+					}
+					catch (err)
+					{
+						if (!forceStop)
+						{
+							throw err;
+						}
+					}
 					this.executionCmd = '';
 					this.executionId = null;
 				}
 
 				if (this.executionCmd !== null)
 				{
-					if (this.executionCmd === this.windowcoveringsActions[value])
+					if ((this.executionCmd === nextCommand) && !forceStop)
 					{
 						// Already executing this command so ignore it
 						this.homey.app.logInformation(`${this.getName()}: onCapabilityWindowcoveringsState`, `command ${this.executionCmd} already executing`);
@@ -230,7 +240,7 @@ class WindowCoveringsDevice extends Device
 						this.executionId = null;
 					}
 				}
-				this.executionCmd = this.windowcoveringsActions[value];
+				this.executionCmd = nextCommand;
 
 				const action = {
 					name: this.executionCmd,
@@ -476,7 +486,7 @@ class WindowCoveringsDevice extends Device
 		}
 	}
 
-	async onCapabilityMyPosition(value, opts)
+	async onCapabilityMyPosition(value, opts, getParameters = () => this.myParameter)
 	{
 		if (!opts || !opts.fromCloudSync)
 		{
@@ -488,9 +498,15 @@ class WindowCoveringsDevice extends Device
 					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
 				}
 
+				const parameters = getParameters();
+				if (parameters === null)
+				{
+					return;
+				}
+
 				const action = {
 					name: this.myCommand,
-					parameters: this.myParameter,
+					parameters,
 				};
 				const result = await this.homey.app.executeDeviceAction(deviceData.label, deviceData.deviceURL, action, this.boostSync);
 				this.executionCmd = action.name;
