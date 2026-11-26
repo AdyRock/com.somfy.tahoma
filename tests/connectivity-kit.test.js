@@ -619,9 +619,17 @@ test('dynamic garage door sends STOP after open and close, even if cancellation 
 test('dynamic garage door MY Position sends the advertised partial alias ID', async () =>
 {
 	const device = createGarageDoor(garageDoorMetadata());
+	const cancellations = [];
+	device.homey.app.cancelExecution = async (...args) => cancellations.push(args);
+	device.homey.app.triggerCommandComplete = () => {};
+	device.driver.triggerDeviceCommandComplete = () => {};
 	await device.onInit();
 	await device.listeners.my_position();
+	await device.listeners.my_position();
 	assert.deepEqual(device.actions, [{ name: 'goToAlias', parameters: ['55305'] }]);
+	assert.deepEqual(cancellations, []);
+
+	await device.syncEvents([{ name: 'ExecutionStateChangedEvent', execId: 'test', newState: 'COMPLETED' }], true);
 
 	const favorite = { type: 'favorite1', id: '1' };
 	const invalidPartial = { type: 'partial', id: ' ' };
@@ -632,6 +640,31 @@ test('dynamic garage door MY Position sends the advertised partial alias ID', as
 	device.homey.app.getDeviceMetadata = async () => garageDoorMetadata([favorite, invalidPartial]);
 	await device.listeners.my_position();
 	assert.equal(device.actions.length, 2);
+});
+
+test('dynamic garage door MY Position can be sent after STOP without cancelling STOP', async () =>
+{
+	const device = createGarageDoor(garageDoorMetadata());
+	const cancellations = [];
+	device.homey.app.cancelExecution = async () =>
+	{
+		const { name } = device.actions.at(-1);
+		cancellations.push(name);
+		if (name === 'stop')
+		{
+			throw new Error('Execution already completed');
+		}
+	};
+	await device.onInit();
+	await device.listeners.windowcoverings_state('up');
+	await device.listeners.windowcoverings_state('idle');
+	await device.listeners.my_position();
+	assert.deepEqual(device.actions, [
+		{ name: 'open', parameters: [] },
+		{ name: 'stop', parameters: [] },
+		{ name: 'goToAlias', parameters: ['55305'] },
+	]);
+	assert.deepEqual(cancellations, ['open']);
 });
 
 test('a garage door STOP supersedes MY Position while its alias lookup is pending', async () =>

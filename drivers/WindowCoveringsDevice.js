@@ -486,14 +486,14 @@ class WindowCoveringsDevice extends Device
 		}
 	}
 
-	async onCapabilityMyPosition(value, opts, getParameters = () => this.myParameter)
+	async onCapabilityMyPosition(value, opts, getParameters = () => this.myParameter, { cancelPrevious = true } = {})
 	{
 		if (!opts || !opts.fromCloudSync)
 		{
 			const deviceData = this.getData();
 			try
 			{
-				if (this.executionId !== null)
+				if (cancelPrevious && (this.executionId !== null))
 				{
 					await this.homey.app.cancelExecution(deviceData.label, this.executionId.id, this.executionId.local, deviceData.deviceURL);
 				}

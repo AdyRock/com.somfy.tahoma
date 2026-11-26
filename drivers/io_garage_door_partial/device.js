@@ -119,32 +119,50 @@ class GarageDoorPartialIODevice extends WindowCoveringsDevice
 			return super.onCapabilityMyPosition(value, opts);
 		}
 
+		if (this.pendingMyPosition || (this.executionCmd === this.myCommand))
+		{
+			return undefined;
+		}
+
 		const request = Symbol('myPosition');
 		this.pendingMyPosition = request;
-		const device = await this.refreshDynamicGarageDoorMetadata();
-		if (this.pendingMyPosition !== request)
+		try
 		{
-			return undefined;
-		}
+			const device = await this.refreshDynamicGarageDoorMetadata();
+			if (this.pendingMyPosition !== request)
+			{
+				return undefined;
+			}
 
-		const commands = device?.definition?.commands;
-		if (!Array.isArray(commands) || !commands.some((command) => (command?.commandName === 'goToAlias') && (command.nparams === 1)))
-		{
-			this.homey.app.logInformation(`${this.getName()}: onCapabilityMyPosition`, 'Could not verify Somfy alias support. Check the gateway connection and device configuration.');
-			return undefined;
-		}
+			const commands = device?.definition?.commands;
+			if (!Array.isArray(commands) || !commands.some((command) => (command?.commandName === 'goToAlias') && (command.nparams === 1)))
+			{
+				this.homey.app.logInformation(`${this.getName()}: onCapabilityMyPosition`, 'Could not verify Somfy alias support. Check the gateway connection and device configuration.');
+				return undefined;
+			}
 
-		const attributes = device?.attributes;
-		const aliases = Array.isArray(attributes) && attributes.find((attribute) => attribute?.name === 'core:SupportedAliases')?.value;
-		const partialAlias = Array.isArray(aliases) && aliases.find((alias) => (
-			(alias?.type === 'partial') && (typeof alias.id === 'string') && alias.id.trim()
-		));
-		if (!partialAlias)
-		{
-			this.homey.app.logInformation(`${this.getName()}: onCapabilityMyPosition`, 'No partial alias advertised. Check the ventilation position in TaHoma.');
-			return undefined;
+			const attributes = device?.attributes;
+			const aliases = Array.isArray(attributes) && attributes.find((attribute) => attribute?.name === 'core:SupportedAliases')?.value;
+			const partialAlias = Array.isArray(aliases) && aliases.find((alias) => (
+				(alias?.type === 'partial') && (typeof alias.id === 'string') && alias.id.trim()
+			));
+			if (!partialAlias)
+			{
+				this.homey.app.logInformation(`${this.getName()}: onCapabilityMyPosition`, 'No partial alias advertised. Check the ventilation position in TaHoma.');
+				return undefined;
+			}
+
+			return await super.onCapabilityMyPosition(value, opts,
+				() => (this.pendingMyPosition === request ? [partialAlias.id] : null),
+				{ cancelPrevious: this.executionCmd !== 'stop' });
 		}
-		return super.onCapabilityMyPosition(value, opts, () => (this.pendingMyPosition === request ? [partialAlias.id] : null));
+		finally
+		{
+			if (this.pendingMyPosition === request)
+			{
+				this.pendingMyPosition = null;
+			}
+		}
 	}
 
 }
