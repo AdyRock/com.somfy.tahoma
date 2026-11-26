@@ -1036,5 +1036,8 @@
 	},
 	"4.0.168": {
 		"en": "Fixed the German luminance flow conditions to display and evaluate positive and negative states correctly. Removed deprecated polling mode and polling interval flow cards that were no longer implemented."
+	},
+	"4.0.169": {
+		"en": "Fixed pairing of IO DynamicScreen exterior screens when TaHoma reports a changed controllable name."
 	}
 }

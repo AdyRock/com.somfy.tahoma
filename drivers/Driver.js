@@ -311,7 +311,15 @@ class Driver extends Homey.Driver
 					const match = `${deviceURL}`.match(/^[^:]+:\/\/([^/]+)\//);
 					return (match && match[1]) ? match[1] : '';
 				};
-				const filteredDevices = devices.filter((device) => this.deviceType.indexOf(device.controllableName) !== -1);
+				const supportedControllableNames = (this.deviceType || []).map((type) => String(type).toLowerCase());
+				const supportedWidgetNames = (this.deviceWidgetType || []).map((type) => String(type).toLowerCase());
+				const filteredDevices = devices.filter((device) =>
+				{
+					const controllableName = String(device && device.controllableName ? device.controllableName : '').toLowerCase();
+					const widgetName = String(device && device.widget ? device.widget : '').toLowerCase();
+					return supportedControllableNames.includes(controllableName)
+						|| supportedWidgetNames.includes(widgetName);
+				});
 				const labelCounts = {};
 				filteredDevices.forEach((device) =>
 				{

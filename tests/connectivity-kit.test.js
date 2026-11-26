@@ -131,6 +131,25 @@ test('the three logged controllable types are discoverable using existing driver
 	}
 });
 
+test('dynamic screens can be paired even when their controllable name changed', async () =>
+{
+	const driver = create('drivers\\io_vertical_exterior_blind\\driver.js', 'io:DynamicScreenIOComponent', []);
+	await driver.onInit();
+	driver.data.widget = 'DynamicScreen';
+	driver.data.controllableName = 'io:NewDynamicScreenComponent';
+	driver.homey.app.getDeviceData = async () => [driver.data];
+
+	const devices = await driver.onReceiveSetupData();
+	assert.equal(devices.length, 1);
+	assert.equal(devices[0].data.controllableName, 'io:NewDynamicScreenComponent');
+
+	const device = create('drivers\\io_vertical_exterior_blind\\device.js', 'io:DynamicScreenIOComponent',
+		['windowcoverings_state', 'windowcoverings_set', 'windowcoverings_closed']);
+	await device.onInit();
+	await device.listeners.my_position();
+	assert.deepEqual(device.actions.pop(), { name: 'goToAlias', parameters: ['1'] });
+});
+
 test('the status LED exposes dimming without unsupported on/off or timer controls', async () =>
 {
 	const device = create('drivers\\dimmable_light\\device.js', 'ogp:Light', ['onoff', 'dim', 'on_with_timer']);
