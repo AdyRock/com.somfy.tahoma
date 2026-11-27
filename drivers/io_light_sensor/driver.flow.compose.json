@@ -122,13 +122,13 @@
 			"title": {
 				"en": "The luminance !{{is|isn't}} more than",
 				"nl": "De lichtsterkte !{{is|is niet}} meer dan",
-				"fr": "La luminance !{{n'est pas|est}} supérieure à",
+				"fr": "La luminance !{{est|n'est pas}} supérieure à",
 				"de": "Die Helligkeit !{{ist|ist nicht}} mehr als"
 			},
 			"titleFormatted": {
 				"en": "The luminance !{{is|isn't}} more than [[luminance]]",
 				"nl": "De lichtsterkte !{{is|is niet}} meer dan [[luminance]]",
-				"fr": "La luminance !{{n'est pas|est}} supérieure à [[luminance]]",
+				"fr": "La luminance !{{est|n'est pas}} supérieure à [[luminance]]",
 				"de": "Die Helligkeit !{{ist|ist nicht}} mehr als [[luminance]]"
 			},
 			"args": [
@@ -155,13 +155,13 @@
 			"title": {
 				"en": "The luminance !{{is|isn't}} less than",
 				"nl": "De lichtsterkte !{{is|is niet}} minder dan",
-				"fr": "La luminance !{{n'est pas|est}} inférieure à",
+				"fr": "La luminance !{{est|n'est pas}} inférieure à",
 				"de": "Die Helligkeit !{{ist|ist nicht}} weniger als"
 			},
 			"titleFormatted": {
 				"en": "The luminance !{{is|isn't}} less than [[luminance]]",
 				"nl": "De lichtsterkte !{{is|is niet}} minder dan [[luminance]]",
-				"fr": "La luminance !{{n'est pas|est}} inférieure à [[luminance]]",
+				"fr": "La luminance !{{est|n'est pas}} inférieure à [[luminance]]",
 				"de": "Die Helligkeit !{{ist|ist nicht}} weniger als [[luminance]]"
 			},
 			"args": [
@@ -188,13 +188,13 @@
 			"title": {
 				"en": "The luminance !{{is|isn't}} between",
 				"nl": "De lichtsterkte !{{is|is niet}} tussen",
-				"fr": "La luminance !{{n'est pas|est}} comprise entre",
+				"fr": "La luminance !{{est|n'est pas}} comprise entre",
 				"de": "Die Helligkeit !{{ist|ist nicht}} zwischen"
 			},
 			"titleFormatted": {
 				"en": "The luminance !{{is|isn't}} between [[luminance_from]] and [[luminance_to]]",
 				"nl": "De lichtsterkte !{{is|is niet}} tussen [[luminance_from]] en [[luminance_to]]",
-				"fr": "La luminance !{{n'est pas|est}} comprise entre [[luminance_from]] et [[luminance_to]]",
+				"fr": "La luminance !{{est|n'est pas}} comprise entre [[luminance_from]] et [[luminance_to]]",
 				"de": "Die Helligkeit !{{ist|ist nicht}} zwischen [[luminance_from]] und [[luminance_to]]"
 			},
 			"args": [
