@@ -5061,9 +5061,9 @@
             },
             "min": 4,
             "max": 35,
-            "step": 1,
+            "step": 0.5,
             "label": "°C",
-            "labelDecimals": 0
+            "labelDecimals": 1
           }
         ]
       },
@@ -5098,9 +5098,9 @@
             },
             "min": 4,
             "max": 35,
-            "step": 1,
+            "step": 0.5,
             "label": "°C",
-            "labelDecimals": 0
+            "labelDecimals": 1
           }
         ]
       },
@@ -5135,9 +5135,9 @@
             },
             "min": 4,
             "max": 35,
-            "step": 1,
+            "step": 0.5,
             "label": "°C",
-            "labelDecimals": 0
+            "labelDecimals": 1
           }
         ]
       },
@@ -5172,9 +5172,9 @@
             },
             "min": 4,
             "max": 35,
-            "step": 1,
+            "step": 0.5,
             "label": "°C",
-            "labelDecimals": 0
+            "labelDecimals": 1
           }
         ]
       },
@@ -5209,9 +5209,9 @@
             },
             "min": 4,
             "max": 35,
-            "step": 1,
+            "step": 0.5,
             "label": "°C",
-            "labelDecimals": 0
+            "labelDecimals": 1
           }
         ]
       },
@@ -9023,6 +9023,8 @@
         "target_temperature.comfort_cooling": {
           "min": 4,
           "max": 35,
+          "step": 0.5,
+          "decimals": 1,
           "title": {
             "en": "Comfort Cooling Temperature",
             "nl": "Comfort Koeltemperatuur",
@@ -9041,6 +9043,8 @@
         "target_temperature.comfort_heating": {
           "min": 4,
           "max": 35,
+          "step": 0.5,
+          "decimals": 1,
           "title": {
             "en": "Comfort Heating Temperature",
             "nl": "Comfort Verwarmingstemperatuur",
@@ -9059,6 +9063,8 @@
         "target_temperature.eco_cooling": {
           "min": 4,
           "max": 35,
+          "step": 0.5,
+          "decimals": 1,
           "title": {
             "en": "Eco Cooling Temperature",
             "nl": "Eco Koeltemperatuur",
@@ -9077,6 +9083,8 @@
         "target_temperature.eco_heating": {
           "min": 4,
           "max": 35,
+          "step": 0.5,
+          "decimals": 1,
           "title": {
             "en": "Eco Heating Temperature",
             "nl": "Eco Verwarmingstemperatuur",
@@ -9095,6 +9103,8 @@
         "target_temperature.derogated": {
           "min": 4,
           "max": 35,
+          "step": 0.5,
+          "decimals": 1,
           "title": {
             "en": "Derogated Temperature",
             "nl": "Afwijkende Temperatuur",

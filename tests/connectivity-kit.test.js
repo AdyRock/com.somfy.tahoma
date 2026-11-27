@@ -307,6 +307,19 @@ test('window covering state returns from idle when closure reaches an endpoint',
 	}
 });
 
+test('window covering position commands reject immediate device failures', async () =>
+{
+	const device = create('drivers\\io_roller_shutter\\device.js', 'io:RollerShutterIOComponent',
+		['windowcoverings_set']);
+	await device.onInit();
+	const error = new Error('Rain detector blocked the command');
+	device.homey.app.executeDeviceAction = async () => { throw error; };
+
+	await assert.rejects(device.listeners.windowcoverings_set(0.15), (err) => err === error);
+	assert.equal(device.warning, error.message);
+	assert.equal(device.executionCmd, '');
+});
+
 test('Velux feedback agrees between polling and events for every inversion setting', async () =>
 {
 	for (const invertPosition of [false, true])

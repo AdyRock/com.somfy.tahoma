@@ -1041,6 +1041,6 @@
 		"en": "Fixed pairing of IO DynamicScreen exterior screens when TaHoma reports a changed controllable name."
 	},
 	"4.0.170": {
-		"en": "Added support for the Zigbee Linky radio transmitter energy sensor. Fixed French positive and negative luminance flow conditions. Added STOP and partial-position alias support for DynamicGarageDoor devices."
+		"en": "Added support for the Zigbee Linky radio transmitter energy sensor. Fixed French positive and negative luminance flow conditions. Added STOP and partial-position alias support for DynamicGarageDoor devices. Allowed half-degree Atlantic heat-pump temperatures in Flow cards and propagated immediate window-covering command failures to Flows."
 	}
 }

@@ -352,6 +352,7 @@ class WindowCoveringsDevice extends Device
 				this.executionCmd = '';
 				this.setWarning(err.message).catch(this.error);
 				this.logCapabilityCommandError('onCapabilityWindowcoveringsSet', err);
+				throw err;
 			}
 		}
 		else
