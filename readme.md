@@ -17,6 +17,19 @@ Tests cover account storage and routing, login recovery and rate limits, HTTP re
 
 External Homey and Somfy services are mocked: tests do not use saved credentials, send email, or move real devices. A real Homey/Somfy smoke test is still required before publishing.
 
+## Adding a device type
+
+Start with the device's entry from a Homey app Device Log. Preserve the `controllableName`, `widgetName`, commands, states, and current values; do not commit gateway URLs or account credentials.
+
+1. Find the closest existing driver under `drivers/` and confirm its command and state names match the Somfy device.
+2. Add the exact `controllableName` to that driver's `deviceType` list in `driver.js`, or create a new driver folder when the capabilities or command model differ materially.
+3. Update `device.js` when Somfy state names, command names, scaling, inversion, or extra capabilities require translation.
+4. Update `driver.compose.json` and `driver.flow.compose.json` when Homey capabilities or Flow cards change.
+5. Add a focused test that proves discovery and the affected command/state translation, then run `npm test`.
+6. Run `npx homey app build` to regenerate and validate `app.json`.
+
+When an existing driver is close but the device metadata differs, include both the advertised `commands` and `states` in the issue. A log containing only the device label or controllable name is generally insufficient to implement reliable support.
+
 ## Driver Support recommendations
 
 Only drivers declaring the device's controllable name are candidates (case-insensitive). Each candidate starts with 100 points for that match. Capability checks add 20 points per match, subtract 12 per unmatched capability, and add up to 10 coverage bonus points. This ranks drivers sharing a controllable name; it is not a percentage of actual device support.
