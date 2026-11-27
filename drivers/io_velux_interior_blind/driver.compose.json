@@ -13,7 +13,7 @@
     "ru": "Ð’Ð½ÑƒÑ‚Ñ€ÐµÐ½Ð½ÑÑ ÑˆÑ‚Ð¾Ñ€Ð° Velux (IO)",
     "ko": "ë²¨ë£©ìŠ¤ ì‹¤ë‚´ ë¸”ë¼ì¸ë“œ (IO)"
   },
-  "class": "sunshade",
+  "class": "blinds",
   "capabilities": [
     "windowcoverings_state",
     "windowcoverings_set",

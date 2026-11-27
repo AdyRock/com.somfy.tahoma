@@ -131,6 +131,14 @@ test('the three logged controllable types are discoverable using existing driver
 	}
 });
 
+test('Velux interior blinds use the same groupable Homey class as roller shutters', () =>
+{
+	const interior = JSON.parse(fs.readFileSync(path.join(root, 'drivers/io_velux_interior_blind/driver.compose.json'), 'utf8'));
+	const roller = JSON.parse(fs.readFileSync(path.join(root, 'drivers/io_velux_roller_shutter/driver.compose.json'), 'utf8'));
+	assert.equal(interior.class, roller.class);
+	assert.equal(interior.class, 'blinds');
+});
+
 test('Linky radio transmitter energy is discoverable with cumulative energy and current power', async () =>
 {
 	const controllableName = 'zigbee:LinkyRadioTransmitterSensorComponent';
