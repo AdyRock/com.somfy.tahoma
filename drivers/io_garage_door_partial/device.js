@@ -50,7 +50,9 @@ class GarageDoorPartialIODevice extends WindowCoveringsDevice
 		else if (this.controllableName === 'io:dynamicgaragedoor')
 		{
 			this.openClosedStateName = 'core:OpenClosedState';
-			this.myCommand = 'goToAlias'; // Name of the command to set the My position
+			this.myCommand = 'goToAlias';
+			// Resolve STOP support before the first button press when the gateway is available.
+			this.refreshDynamicGarageDoorMetadata();
 		}
 		else
 		{
@@ -58,37 +60,108 @@ class GarageDoorPartialIODevice extends WindowCoveringsDevice
 			this.myCommand = 'partialPosition'; // Name of the command to set the My position
 		}
 
-		if (this.invertUpDown)
-		{
-			// Homey capability to Somfy command map
-			this.windowcoveringsActions = {
-				up: 'close',
-				idle: null,
-				down: 'open',
-			};
+		this.windowcoveringsActions.idle = null;
+		this.windowcoveringsStatesMap.partial = 'idle';
+	}
 
-			// Somfy state to Homey capability map
-			this.windowcoveringsStatesMap = {
-				open: 'down',
-				closed: 'up',
-				unknown: 'idle',
-				partial: 'idle',
-			};
+	async onSettings(settings)
+	{
+		const result = super.onSettings(settings);
+		this.windowcoveringsActions.idle = this.stopSupported ? 'stop' : null;
+		this.windowcoveringsStatesMap.partial = 'idle';
+		return result;
+	}
+
+	async refreshDynamicGarageDoorMetadata()
+	{
+		if (!this.metadataRequest)
+		{
+			this.metadataRequest = this.homey.app.getDeviceMetadata(this.getDeviceUrl())
+				.then((device) =>
+				{
+					const commands = device?.definition?.commands;
+					if (Array.isArray(commands))
+					{
+						this.stopSupported = commands.some((command) => (command?.commandName === 'stop') && (command.nparams === 0));
+						this.windowcoveringsActions.idle = this.stopSupported ? 'stop' : null;
+					}
+					return device;
+				})
+				.catch((error) =>
+				{
+					this.logCapabilityCommandError('refreshDynamicGarageDoorMetadata', error);
+					return null;
+				})
+				.finally(() => { this.metadataRequest = null; });
 		}
-		else
-		{
-			this.windowcoveringsActions = {
-				up: 'open',
-				idle: null,
-				down: 'close',
-			};
+		return this.metadataRequest;
+	}
 
-			this.windowcoveringsStatesMap = {
-				open: 'up',
-				closed: 'down',
-				unknown: 'idle',
-				partial: 'idle',
-			};
+	async onCapabilityWindowcoveringsState(value, opts)
+	{
+		if (opts?.fromCloudSync || (this.controllableName !== 'io:dynamicgaragedoor'))
+		{
+			return super.onCapabilityWindowcoveringsState(value, opts);
+		}
+
+		this.pendingMyPosition = null;
+		if ((value === 'idle') && (this.stopSupported === undefined))
+		{
+			await this.refreshDynamicGarageDoorMetadata();
+		}
+		return super.onCapabilityWindowcoveringsState(value, opts, (value === 'idle') && (this.stopSupported === true));
+	}
+
+	async onCapabilityMyPosition(value, opts)
+	{
+		if ((this.controllableName !== 'io:dynamicgaragedoor') || opts?.fromCloudSync)
+		{
+			return super.onCapabilityMyPosition(value, opts);
+		}
+
+		if (this.pendingMyPosition || (this.executionCmd === this.myCommand))
+		{
+			return undefined;
+		}
+
+		const request = Symbol('myPosition');
+		this.pendingMyPosition = request;
+		try
+		{
+			const device = await this.refreshDynamicGarageDoorMetadata();
+			if (this.pendingMyPosition !== request)
+			{
+				return undefined;
+			}
+
+			const commands = device?.definition?.commands;
+			if (!Array.isArray(commands) || !commands.some((command) => (command?.commandName === 'goToAlias') && (command.nparams === 1)))
+			{
+				this.homey.app.logInformation(`${this.getName()}: onCapabilityMyPosition`, 'Could not verify Somfy alias support. Check the gateway connection and device configuration.');
+				return undefined;
+			}
+
+			const attributes = device?.attributes;
+			const aliases = Array.isArray(attributes) && attributes.find((attribute) => attribute?.name === 'core:SupportedAliases')?.value;
+			const partialAlias = Array.isArray(aliases) && aliases.find((alias) => (
+				(alias?.type === 'partial') && (typeof alias.id === 'string') && alias.id.trim()
+			));
+			if (!partialAlias)
+			{
+				this.homey.app.logInformation(`${this.getName()}: onCapabilityMyPosition`, 'No partial alias advertised. Check the ventilation position in TaHoma.');
+				return undefined;
+			}
+
+			return await super.onCapabilityMyPosition(value, opts,
+				() => (this.pendingMyPosition === request ? [partialAlias.id] : null),
+				{ cancelPrevious: this.executionCmd !== 'stop' });
+		}
+		finally
+		{
+			if (this.pendingMyPosition === request)
+			{
+				this.pendingMyPosition = null;
+			}
 		}
 	}
 
