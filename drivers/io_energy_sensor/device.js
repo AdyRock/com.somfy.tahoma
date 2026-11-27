@@ -26,6 +26,20 @@ const CapabilitiesXRefWithPower = [
 		scale: 1,
 	},
 ];
+const CapabilitiesXRefLinky = [
+	{
+		homeyName: 'meter_power',
+		somfyNameGet: 'core:ElectricEnergyConsumptionState',
+		somfyNameSet: [],
+		scale: 1000,
+	},
+	{
+		homeyName: 'measure_power',
+		somfyNameGet: 'core:ElectricPowerConsumptionState',
+		somfyNameSet: [],
+		scale: 1,
+	},
+];
 class EnergySensorDevice extends SensorDevice
 {
 
@@ -38,7 +52,11 @@ class EnergySensorDevice extends SensorDevice
 		{
 			controllableName = dd.controllableName.toString().toLowerCase();
 		}
-		if (controllableName === 'zigbee:electricalenergyconsumptionsensorcomponent')
+		if (controllableName === 'zigbee:linkyradiotransmittersensorcomponent')
+		{
+			this.CapabilitiesXRef = CapabilitiesXRefLinky;
+		}
+		else if (controllableName === 'zigbee:electricalenergyconsumptionsensorcomponent')
 		{
 			this.CapabilitiesXRef = CapabilitiesXRefWithPower;
 		}

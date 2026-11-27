@@ -27,6 +27,7 @@ class EnergySensorDriver extends Driver
 			'io:CumulatedElectricalEnergyConsumptionIOSystemDeviceSensor',
 			'eliot:EliotElectricEnergyConsumptionSensor',
 			'zigbee:ElectricalEnergyConsumptionSensorComponent',
+			'zigbee:LinkyRadioTransmitterSensorComponent',
 		];
 	}
 

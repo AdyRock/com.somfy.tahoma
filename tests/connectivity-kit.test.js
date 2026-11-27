@@ -131,6 +131,31 @@ test('the three logged controllable types are discoverable using existing driver
 	}
 });
 
+test('Linky radio transmitter energy is discoverable with cumulative energy and current power', async () =>
+{
+	const controllableName = 'zigbee:LinkyRadioTransmitterSensorComponent';
+	const driver = create('drivers\\io_energy_sensor\\driver.js', controllableName, []);
+	await driver.onInit();
+	driver.homey.app.getDeviceData = async () => [driver.data];
+	const devices = await driver.onReceiveSetupData();
+	assert.equal(devices.length, 1);
+	assert.equal(devices[0].data.controllableName, controllableName);
+
+	const device = create('drivers\\io_energy_sensor\\device.js', controllableName,
+		['meter_power', 'measure_power']);
+	await device.onInit();
+	await device.syncEvents([{
+		name: 'DeviceStateChangedEvent',
+		deviceURL: device.data.deviceURL,
+		deviceStates: [
+			{ name: 'core:ElectricEnergyConsumptionState', value: 12345 },
+			{ name: 'core:ElectricPowerConsumptionState', value: 678 },
+		],
+	}], true);
+	assert.equal(device.values.meter_power, 12.345);
+	assert.equal(device.values.measure_power, 678);
+});
+
 test('dynamic screens can be paired even when their controllable name changed', async () =>
 {
 	const driver = create('drivers\\io_vertical_exterior_blind\\driver.js', 'io:DynamicScreenIOComponent', []);
